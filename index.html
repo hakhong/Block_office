@@ -64,6 +64,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);overflow:hi
   top:16px;left:max(16px,env(safe-area-inset-left,0px));
   max-width:330px;padding:12px 14px 13px;display:grid;gap:5px;
 }
+.brand-top{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.brand-toggle{border:1px solid var(--panel-edge);background:transparent;color:var(--muted);font:500 .74rem var(--f-body);border-radius:6px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+.brand-toggle:hover{color:var(--ink);background:var(--hover)}
+.brand-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.brand-body{display:grid;gap:5px}
+.brand.collapsed .brand-body{display:none}
 .brand h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:1.65rem;line-height:1.05;letter-spacing:.01em;text-wrap:balance}
 .brand h1 span{display:inline-block;width:.62em;height:.62em;background:var(--accent);margin-right:.35em;vertical-align:.06em;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
 .brand p{margin:0;color:var(--muted);font-size:.84rem;line-height:1.5}
@@ -220,6 +226,7 @@ table.wc td.skip{color:#d9534f;font-weight:600}
   .brand{max-width:calc(100% - 92px);padding:10px 12px}
   .brand h1{font-size:1.35rem}
   .brand p{display:none}
+  .brand-toggle{display:none}
   .controls{bottom:auto;top:16px;left:auto;right:max(16px,env(safe-area-inset-right,0px));flex-direction:column;flex-wrap:nowrap;max-width:none;max-height:calc(58% - 32px);overflow-y:auto}
   .controls .sep{width:auto;height:1px;margin:2px 6px}
   .controls .label{display:none}
@@ -236,17 +243,20 @@ table.wc td.skip{color:#d9534f;font-weight:600}
   <div class="crosshair" id="crosshair" hidden></div>
 
   <header class="hud brand">
-    <h1><span aria-hidden="true"></span>블록 오피스</h1>
+    <div class="brand-top"><h1><span aria-hidden="true"></span>블록 오피스</h1><button type="button" class="brand-toggle" id="brandToggle" aria-expanded="false" aria-controls="brandBody" title="설명·단축키 펼치기 (?)">설명</button></div>
+    <div class="brand-body" id="brandBody">
     <p>시간은 실제 시각에 맞춰 흐르고, 위 장면 버튼(출근·업무 집중·점심·회의·퇴근)을 누르면 가짜 시각으로 그 장면부터 볼 수 있어요. 1층은 대표실·팀별 사무실(경영지원·개발·디자인·사업·하드웨어·임베디드), 대회의실·서버실·카페·화장실, 남쪽 신관에 로비 안내 데스크와 A/S 센터가 있고, 방문객이 수시로 드나들어요. 옥상은 흡연 구역이에요. 대회의실에 누구든 앉으면 스크린이 내려와 빔 영상이 나오고, 대표가 들어가면 팀장들이 모여요.</p>
     <dl class="keys">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>걷기 (<kbd>Shift</kbd> 달리기, <kbd>Space</kbd> 점프)</dd>
       <dt>우클릭 드래그</dt><dd>시점 돌리기 · 휠 거리 조절</dd>
       <dt><kbd>V</kbd></dt><dd>전경 → 3인칭 → 1인칭</dd>
       <dt><kbd>H</kbd></dt><dd>옥상(2층) 숨기기 / 보이기</dd>
+      <dt><kbd>?</kbd></dt><dd>이 설명 창 접기 / 펼치기</dd>
       <dt><kbd>E</kbd></dt><dd>근처 자리에 앉기 / 일어나기</dd>
       <dt>보드 클릭</dt><dd>회의실 화이트보드에 글쓰기</dd>
       <dt>목록 클릭</dt><dd>그 사람 시점으로 (<kbd>C</kbd> 내 시점)</dd>
     </dl>
+  </div>
   </header>
 
   <div class="hud timebar" id="timebar" role="toolbar" aria-label="시간과 날씨">
@@ -3210,6 +3220,7 @@ window.addEventListener("keydown", e => {
   }
   else if (k === "f" && camMode === "overview") setFollowTo(follow === player ? null : player);
   else if (k === "h") setRoofHidden(!roofHidden);
+  else if (e.code === "Slash" || k === "?") document.getElementById("brandToggle").click();
   else if (k === "0") setMode("all");
   else if (k === "1") setMode(0);
   else if (k === "2") setMode(1);
@@ -3512,6 +3523,14 @@ tabWc.addEventListener("click", () => showTab("wc"));
 tabRoof.addEventListener("click", () => showTab("roof"));
 tabWork.addEventListener("click", () => showTab("work"));
 
+/* 설명 창: 기본은 접힘, 펼친 상태는 브라우저에 기억 */
+{
+  const brand = document.querySelector(".brand"), bt = document.getElementById("brandToggle");
+  let open = false; try { open = localStorage.getItem("blockoffice.helpOpen") === "1"; } catch(e){}
+  const apply = () => { brand.classList.toggle("collapsed", !open); bt.textContent = open ? "접기" : "설명"; bt.setAttribute("aria-expanded", String(open)); };
+  bt.addEventListener("click", () => { open = !open; try { localStorage.setItem("blockoffice.helpOpen", open ? "1" : "0"); } catch(e){} apply(); });
+  apply();
+}
 const roster = document.getElementById("roster");
 const rosterToggle = document.getElementById("rosterToggle");
 rosterToggle.addEventListener("click", () => {
