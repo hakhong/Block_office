@@ -169,6 +169,7 @@ table.wc td.skip{color:#d9534f;font-weight:600}
 .tb:hover{background:var(--hover)}
 .tb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .tb.ot[aria-pressed="true"]{background:var(--s-meet);color:#fff}
+.wxinfo{font:500 .74rem var(--f-mono);color:var(--muted);padding:0 6px;white-space:nowrap;align-self:center}
 .tb.iv[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .caption{position:absolute;left:50%;bottom:122px;transform:translateX(-50%);display:flex;gap:10px;align-items:baseline;
   background:rgba(14,17,22,.82);color:#f4f1ea;padding:10px 16px;border-radius:10px;font-size:.95rem;line-height:1.45;
@@ -404,15 +405,15 @@ const FLOORS = [
     "#.======................aQa.aQabN#........w",
     "#..............................bN#..LL..J.w",
     "###############gg.....ggggggggggg#P.oo...Pw",
-    "wFFFFFF....PgP........g.c.c.g8.FFw#########",
-    "w..WWW..U...g.........g.DDDDg..tWw         ",
-    "w..ttt.EUf..g..GG.......DDDDg..tWw         ",
-    "w......EUf....RRRR....g.c.c......w         ",
-    "w......EUf..g.iiii....gggggggggggw         ",
-    "w.......U...g.....LL..g.c.c....FPw         ",
-    "w...........g....oooo.g.DDDD.tW..w         ",
-    "w........eeeg....SSSS...DDDD.tW..w         ",
-    "wP..........g.........g.c.c.....Pw         ",
+    "wFFFFFF....PgP........g.c.c.g8.55w#########",
+    "w..WWW..U...g.........g.DDDDg..t.w         ",
+    "w..ttt.EUf..g..GG.......DDDDgt77tw         ",
+    "w......EUf....RRRR....g.c.c..t77tw         ",
+    "w......EUf..g.iiii....ggggggg....w         ",
+    "w.......U...g.....LL..g.c.c..t66tw         ",
+    "w...........g....oooo.g.DDDDgt66tw         ",
+    "w........eeeg....SSSS...DDDDg....w         ",
+    "wP..........g.........g.c.c.gF..Fw         ",
     "###############....###############         "
   ]},
   { name:"옥상", tag:"RF", elev:2.6, map:[
@@ -479,7 +480,7 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const ROOM_NAME = {A:"대회의실", B:"회의실 B", C:"회의실 C"};
 const officeOf = t => t.f !== 0 ? "" : (t.x>=1 && t.x<=7 && t.y>=1 && t.y<=6) ? "ceo" : (t.x>=9 && t.x<=15 && t.y>=1 && t.y<=6) ? "ops" : (t.y>=10 && t.y<=13) ? (t.x>=1 && t.x<=6 ? "dev" : t.x>=8 && t.x<=12 ? "design" : t.x>=14 && t.x<=20 ? "biz" : "") :
-  (t.y>=28 && t.y<=36) ? (t.x>=1 && t.x<=11 ? "as" : t.x>=13 && t.x<=21 ? "lobby" : t.x>=23 && t.x<=32 ? (t.y<=31 ? "hw" : "emb") : "") : "";
+  (t.y>=28 && t.y<=36) ? (t.x>=1 && t.x<=11 ? "as" : t.x>=13 && t.x<=21 ? "lobby" : t.x>=29 && t.x<=32 ? "lab" : t.x>=23 && t.x<=28 ? (t.y<=31 ? "hw" : "emb") : "") : "";
 const roomOf = t => t.f===0 && t.x>=24 && t.x<=32 && t.y<=17 ? (t.y<7 ? "A" : t.y<13 ? "B" : "C") : "";
 const loungeOf = t => (t.f===0 && t.x>=34 && t.x<=41) ? (t.y>=15 && t.y<=22 ? "rest" : t.y>=24 && t.y<=27 ? "women" : "") : "";
 const LOUNGE_NAME = {rest:"휴게실", women:"여성 휴게실"};
@@ -492,6 +493,7 @@ function neighborDir(f,x,y,want){
 function facingAt(f,x,y){
   const t = tileAt(f,x,y);
   if (t === "J" && GLASSY.has(tileAt(f,x-1,y))) return {dx:1,dz:0};
+  if (t === "t"){ for (const ch of ["5","6","7","W"]){ const d = neighborDir(f,x,y,ch); if (d) return d; } }
   if (FIXED_FACE[t]) return FIXED_FACE[t];
   return FACE[t] ? neighborDir(f,x,y,FACE[t]) : null;
 }
@@ -573,7 +575,7 @@ function zone(f,x,y){
     if (off === "biz") return ["#e6d7c8","#d9c7b5"];
     if (off === "as") return ["#d3e5ea","#c3d8de"];
     if (off === "lobby") return (x+y)%2 ? ["#e6dfd2","#d8d0c1"] : ["#ded6c7","#d8d0c1"];
-    if (off === "hw" && x >= 29) return (x+y)%2 ? ["#b9c4c9","#a9b4b9"] : ["#c1cbcf","#a9b4b9"];   /* 랩실: 정전기 방지 바닥 */
+    if (off === "lab") return (x+y)%2 ? ["#b9c4c9","#a9b4b9"] : ["#c1cbcf","#a9b4b9"];   /* 랩실: 정전기 방지 바닥 */
     if (off === "hw") return ["#e4d3bf","#d6c3ac"];
     if (off === "emb") return ["#d7d3ec","#c8c3e2"];
     if (x>=16 && x<=20 && y>=16 && y<=17) return (x+y)%2 ? ["#9aa3a8","#7f888d"] : ["#8f989d","#7f888d"];
@@ -797,7 +799,118 @@ function labBench(f, x, y, cx, cz, kind){
     const ls = new THREE.Mesh(new THREE.PlaneGeometry(0.21,0.13), screens[0]); ls.position.set(cx+0.35,0.54,cz+0.02); ls.rotation.set(0,-Math.PI/2,0.2); curGroup.add(ls);
   }
 }
+/* 랩실 배기 장치: 실험대 위 흡입 후드 → 위로 올라가는 덕트 → 천장 쪽 수평 덕트 → 외벽 배기팬 → 건물 밖 배기구
+   (실험대를 쓰는 동안 배기팬이 돌고 밖으로 배기가 나감) */
+const fumeFans = [];
+function fumeArm(f, seatKey, hx, hz, wallX){
+  const DUCT = "#b9bdb6", topY = 1.62;
+  /* 흡입 후드 (작업 위치 바로 위, 깔때기 모양) */
+  box(0.34,0.03,0.34,"#e8b520",hx,0.86,hz); box(0.26,0.06,0.26,"#e8b520",hx,0.9,hz); box(0.16,0.06,0.16,"#e8b520",hx,0.96,hz);
+  box(0.3,0.004,0.3,"#2b2f36",hx,0.843,hz,{cast:false});
+  for (let k=0;k<5;k++) box(0.28,0.006,0.012,"#7a6a2a",hx,0.846,hz-0.12+k*0.06,{cast:false});
+  /* 수직 덕트 + 이음 밴드 */
+  box(0.1,topY-0.99,0.1,DUCT,hx,(topY+0.99)/2,hz);
+  for (let k=0;k<3;k++) box(0.12,0.025,0.12,"#9aa3a8",hx,1.1+k*0.17,hz,{cast:false});
+  /* 꺾임 + 수평 덕트 → 외벽(동쪽) */
+  box(0.12,0.12,0.12,DUCT,hx,topY,hz);
+  box(wallX - hx,0.1,0.1,DUCT,(hx+wallX)/2,topY,hz);
+  /* 외벽 배기팬 (실내 쪽 그릴 + 도는 팬) */
+  box(0.12,0.42,0.42,"#d5d8d1",wallX-0.04,topY,hz);
+  const fan = new THREE.Group(); fan.position.set(wallX-0.105,topY,hz); curGroup.add(fan);
+  for (let k=0;k<4;k++){ const bl = new THREE.Mesh(new THREE.BoxGeometry(0.01,0.15,0.05), mat("#3a3f45")); bl.position.y = 0.08; const pv = new THREE.Group(); pv.rotation.x = k*Math.PI/2; pv.add(bl); fan.add(pv); }
+  for (let k=0;k<5;k++) box(0.006,0.36,0.012,"#9aa3a8",wallX-0.12,topY,hz-0.16+k*0.08,{cast:false});
+  /* 건물 밖 배기구(루버) */
+  box(0.14,0.3,0.34,"#9aa3a8",wallX+0.62,topY,hz);
+  for (let k=0;k<4;k++){ const l = box(0.16,0.02,0.34,"#7d858a",wallX+0.66,topY-0.12+k*0.08,hz,{cast:false}); l.rotation.z = -0.4; }
+  fumeFans.push({fan, key: seatKey, out: new THREE.Vector3(wallX+0.75, topY, hz), puff: 0});
+}
+/* ───────── 공용 랩실: 대형 실험 테이블 + 원형 테이블 + 온도 챔버 ───────── */
+function buildLab(){
+  curGroup = groups[0];
+  const f = 0, X = wx, Z = wz, scr = (w,h,x,y,z,ry) => { const cv = document.createElement("canvas"); cv.width = 160; cv.height = 100; const tx = new THREE.CanvasTexture(cv); const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:tx})); m.position.set(x,y,z); m.rotation.y = ry; curGroup.add(m); return {canvas:cv, tex:tx}; };
+  const label = (txt, w, h, x, y, z, ry, bg="#1d2025", fg="#e8f0ea") => textPlane(w, h, (c,cw,ch) => { c.fillStyle = bg; c.fillRect(0,0,cw,ch); c.fillStyle = fg; c.font = "700 " + Math.round(ch*0.6) + "px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(txt, cw/2, ch/2); }, x, y, z, ry);
+  const reg = (x, y, kind) => benchKinds.set(nk(f,x,y), {kind, tip:null});
+  /* 대형 실험 테이블 (x30-31, y30-31): 이음새 없는 큰 상판 + 정전기 매트 */
+  { const cx = (X(30)+X(31))/2, cz = (Z(30)+Z(31))/2;
+    box(1.96,0.06,1.96,"#d8cfb8",cx,0.42,cz); box(1.8,0.008,1.8,"#3e7a6a",cx,0.454,cz,{cast:false});
+    for (const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) box(0.07,0.4,0.07,"#5b5148",cx+sx*0.9,0.2,cz+sz*0.9);
+    box(0.5,0.04,0.12,"#2b2f36",cx,0.48,cz);   /* 가운데 멀티탭 */
+    /* 서쪽(자리 29,30): 오실로스코프 */
+    const sx0 = X(30) - 0.1, sz0 = Z(30);
+    box(0.26,0.22,0.4,"#c9ccc4",sx0+0.1,0.57,sz0); box(0.02,0.16,0.24,"#1d2025",sx0-0.035,0.58,sz0-0.04);
+    const s1 = scr(0.22,0.14,sx0-0.047,0.58,sz0-0.04,-Math.PI/2); s1.key = nk(f,29,30); scopes.push(s1); drawScope(s1,0,false);
+    for (let k=0;k<4;k++) box(0.012,0.025,0.025,["#ffe14d","#3fe0ff","#e8475f","#7fd1a8"][k],sx0-0.035,0.49,sz0-0.14+k*0.05,{cast:false});
+    const p1 = box(0.3,0.008,0.008,"#ffe14d",sx0-0.25,0.465,sz0+0.12,{cast:false}); p1.rotation.y = 0.5;
+    box(0.2,0.012,0.14,"#1f7a4a",sx0-0.25,0.46,sz0+0.2);
+    reg(29,30,"scope");
+    /* 서쪽(자리 29,31): TRACE32 디버거 + 타깃 보드 + 노트북 */
+    const tx0 = X(30) - 0.1, tz0 = Z(31);
+    box(0.22,0.07,0.16,"#2f6fd8",tx0+0.1,0.495,tz0-0.2); label("TRACE32",0.2,0.05,tx0-0.012,0.5,tz0-0.2,-Math.PI/2,"#2f6fd8","#ffffff");
+    box(0.03,0.01,0.012,"#52d18a",tx0+0.0,0.535,tz0-0.25,{cast:false});
+    const rb = box(0.32,0.004,0.05,"#9aa3a8",tx0-0.12,0.462,tz0-0.06,{cast:false}); rb.rotation.y = -0.6;
+    box(0.22,0.015,0.16,"#1f7a4a",tx0-0.25,0.465,tz0+0.08); box(0.06,0.02,0.06,"#25292d",tx0-0.25,0.48,tz0+0.08);
+    for (let k=0;k<3;k++) box(0.015,0.012,0.015,["#ff4d4d","#52d18a","#ffe14d"][k],tx0-0.33+k*0.03,0.478,tz0+0.15,{cast:false});
+    box(0.28,0.015,0.2,"#b8bcc2",tx0+0.1,0.465,tz0+0.2); { const lid = box(0.015,0.18,0.28,"#b8bcc2",tx0+0.24,0.56,tz0+0.2); lid.rotation.z = -0.2; const ls = new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.15), screens[0]); ls.position.set(tx0+0.228,0.56,tz0+0.2); ls.rotation.set(0,-Math.PI/2,0.2); curGroup.add(ls); }
+    reg(29,31,"trace");
+    /* 동쪽(자리 32,30): 납땜 스테이션 + 흡입 후드 */
+    const hx = X(31) + 0.1, hz = Z(30);
+    box(0.18,0.1,0.16,"#3a3f45",hx-0.12,0.51,hz-0.25); box(0.012,0.04,0.08,"#e8475f",hx-0.025,0.53,hz-0.25,{cast:false});
+    box(0.06,0.08,0.06,"#2b2f36",hx-0.1,0.5,hz+0.2);
+    const ironG = new THREE.Group(); ironG.position.set(hx+0.1,0.52,hz-0.02); ironG.rotation.set(0,-0.4,0.5); curGroup.add(ironG);
+    box(0.03,0.16,0.03,"#2b2f36",0,0.04,0,{parent:ironG}); box(0.012,0.06,0.012,"#c9ccc4",0,-0.07,0,{parent:ironG,cast:false});
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.014,0.02,0.014), new THREE.MeshBasicMaterial({color:"#a35a2a"})); tip.position.y = -0.105; ironG.add(tip);
+    box(0.24,0.008,0.18,"#2f9e77",hx+0.05,0.463,hz+0.02,{cast:false}); box(0.07,0.04,0.07,"#c9ccc4",hx-0.2,0.48,hz+0.05);
+    benchKinds.set(nk(f,32,30), {kind:"solder", tip});
+    fumeArm(f, nk(f,32,30), hx+0.05, hz, X(33) - 0.5);
+    /* 동쪽(자리 32,31): 계측기 랙 (파워서플라이·함수발생기·스펙트럼 분석기·멀티미터) */
+    const mx = X(31) + 0.15, mz = Z(31);
+    box(0.3,0.12,0.42,"#2b2f36",mx-0.05,0.52,mz-0.05); box(0.3,0.12,0.42,"#c9ccc4",mx-0.05,0.64,mz-0.05); box(0.3,0.14,0.42,"#3a3f45",mx-0.05,0.77,mz-0.05);
+    box(0.012,0.04,0.12,"#ff4d4d",mx+0.105,0.53,mz-0.1,{cast:false}); box(0.012,0.04,0.12,"#52d18a",mx+0.105,0.53,mz+0.06,{cast:false});
+    const s2 = scr(0.18,0.1,mx+0.103,0.77,mz-0.05,Math.PI/2); s2.key = nk(f,32,31); scopes.push(s2); drawScope(s2,0,false);
+    box(0.08,0.025,0.14,"#ffd23f",mx+0.15,0.47,mz+0.28,{cast:false});
+    reg(32,31,"measure");
+  }
+  /* 원형 테이블 (x30-31, y33-34): 보드 리뷰·회의 */
+  { const cx = (X(30)+X(31))/2, cz = (Z(33)+Z(34))/2;
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.88,0.88,0.06,28), mat("#d8cfb8")); top.position.set(cx,0.42,cz); top.castShadow = top.receiveShadow = true; curGroup.add(top);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.2,0.4,12), mat("#5b5148")); leg.position.set(cx,0.2,cz); curGroup.add(leg);
+    box(0.26,0.012,0.18,"#1f7a4a",cx-0.15,0.458,cz-0.1); box(0.2,0.012,0.14,"#2f6fd8",cx+0.2,0.458,cz+0.15);
+    box(0.24,0.012,0.17,"#b8bcc2",cx+0.25,0.458,cz-0.3); box(0.07,0.09,0.07,"#f4f1ea",cx-0.4,0.495,cz+0.25); box(0.18,0.004,0.25,"#fbfaf6",cx-0.05,0.455,cz+0.32,{cast:false});
+    for (const [x,y] of [[29,33],[29,34],[32,33],[32,34]]) reg(x,y,"review");
+  }
+  /* 온도 챔버 (x31-32, y28) */
+  { const cx = (X(31)+X(32))/2, cz = Z(28) - 0.02;
+    box(1.8,1.7,0.86,"#e6e8e3",cx,0.85,cz); box(1.82,0.12,0.88,"#c9ccc4",cx,0.06,cz);
+    box(0.95,1.2,0.04,"#d3d6ce",cx-0.25,0.85,cz+0.45); box(0.5,0.5,0.01,"#3a4a5a",cx-0.25,1.0,cz+0.472,{cast:false});
+    box(0.05,0.3,0.06,"#9aa3a8",cx+0.18,0.85,cz+0.48);
+    box(0.5,0.6,0.03,"#2b2f36",cx+0.55,1.05,cz+0.45);
+    const c1 = scr(0.42,0.22,cx+0.55,1.18,cz+0.468,0); chamberScreen = c1;
+    drawChamber(false);
+    box(0.06,0.06,0.02,"#52d18a",cx+0.42,0.88,cz+0.47,{cast:false}); chamberLamp = box(0.06,0.06,0.02,"#ff9a1f",cx+0.55,0.88,cz+0.47,{cast:false});
+    label("온도·습도 챔버",0.8,0.12,cx,1.62,cz+0.435,0,"#2b2f36","#ffd23f");
+    reg(31,29,"chamber");
+  }
+}
+let chamberScreen = null, chamberLamp = null, chamberT = 0, chamberWas = null;
+function drawChamber(on){
+  const c = chamberScreen.canvas.getContext("2d"), w = chamberScreen.canvas.width, h = chamberScreen.canvas.height;
+  c.fillStyle = "#06120c"; c.fillRect(0,0,w,h); c.fillStyle = "#3fe0ff"; c.font = "bold 30px monospace"; c.textAlign = "left";
+  const temp = on ? (-40 + Math.sin(clockT*0.2)*0.4).toFixed(1) : "25.0";
+  c.fillText(temp + "°C", 8, 42); c.fillStyle = "#9fe3b8"; c.font = "bold 18px monospace"; c.fillText((on ? "85" : "45") + "%RH  " + (on ? "RUN" : "STOP"), 8, 76);
+  chamberScreen.tex.needsUpdate = true;
+}
 function updateLab(t, dt){
+  if (chamberScreen){
+    const o = occupied.get(nk(0,31,29)), on = !!o && o.state !== "walk" && o.activity === "bench";
+    chamberT += dt;
+    if (on !== chamberWas || (on && chamberT > 1)){ chamberT = 0; chamberWas = on; drawChamber(on); chamberLamp.material = mat(on ? "#ff4d4d" : "#ff9a1f"); }
+  }
+  for (const ff of fumeFans){
+    const o = occupied.get(ff.key), on = !!o && o.state !== "walk" && o.activity === "bench";
+    if (!on) continue;
+    ff.fan.rotation.x += dt*(reduceMotion ? 3 : 24);
+    if (!reduceMotion){ ff.puff -= dt; if (ff.puff <= 0){ ff.puff = rand(0.4, 0.8); spawnPuff(ff.out); } }
+  }
   for (const sc of scopes){
     const o = occupied.get(sc.key), active = !!o && o.state !== "walk" && o.activity === "bench";
     sc.acc = (sc.acc || 0) + dt;
@@ -1121,6 +1234,7 @@ for (let f=0; f<NF; f++){
         break;
       }
       case "G": chair(f,x,y,"#34383d"); break;
+      case "5": case "6": case "7": break;   /* 랩실 장비는 buildLab()에서 한 번에 그림 */
       case "8": {   /* 공기청정기 */
         box(0.42,0.78,0.42,"#f2f2ef",cx,0.39,cz);
         box(0.36,0.04,0.36,"#2b2f36",cx,0.8,cz,{cast:false});
@@ -1366,7 +1480,9 @@ doorPlate("디자인팀", TEAMS.design.color, 8, 9);
 doorPlate("사업팀", TEAMS.biz.color, 14, 9);
 doorPlate("A/S 센터", TEAMS.cs.color, 12, 31, true);
 doorPlate("하드웨어팀", TEAMS.hw.color, 22, 30, true);
-doorPlate("하드웨어 랩 (공용)", TEAMS.hw.color, 28, 31, true);
+doorPlate("공용 랩실", TEAMS.hw.color, 28, 31, true);
+doorPlate("공용 랩실", TEAMS.emb.color, 28, 33, true);
+buildLab();
 doorPlate("임베디드팀", TEAMS.emb.color, 22, 35, true);
 teamSign("하드웨어팀", TEAMS.hw.color, (wx(25)+wx(26))/2, wz(29)+0.5);
 teamSign("임베디드팀", TEAMS.emb.color, (wx(25)+wx(26))/2, wz(34)+0.5);
@@ -1380,6 +1496,7 @@ teamSign("임베디드팀", TEAMS.emb.color, (wx(25)+wx(26))/2, wz(34)+0.5);
 }
 for (const [tx, ty, ox, oz] of [[23,28,-0.3,-0.3],[23,36,-0.3,0.3]]) cornerPlant(wx(tx)+ox, wz(ty)+oz);
 
+const canopy = {x0:0, x1:0, z0:0, z1:0, y:0};
 /* 화장실 표지판, 흡연 구역 파고라와 표지판 */
 curGroup = groups[0];
 restroomSign(4, 20, false); restroomSign(10, 20, true);
@@ -1389,6 +1506,12 @@ curGroup = groups[1];
   box(x1-x0+0.2, 0.1, 0.12, "#5b5148", (x0+x1)/2, 1.5, z0);
   box(x1-x0+0.2, 0.1, 0.12, "#5b5148", (x0+x1)/2, 1.5, z1);
   for (let x = x0; x <= x1 + 0.01; x += 0.75) box(0.08, 0.05, z1-z0+0.3, "#6d6156", x, 1.58, (z0+z1)/2);
+  /* 유리 천장: 비·눈은 유리 위에서 멈춤 */
+  const glassRoof = new THREE.Mesh(new THREE.BoxGeometry(x1-x0+0.5, 0.03, z1-z0+0.6), new THREE.MeshLambertMaterial({color:"#bfe3f0", transparent:true, opacity:0.32, depthWrite:false}));
+  glassRoof.position.set((x0+x1)/2, 1.63, (z0+z1)/2); glassRoof.renderOrder = 3; curGroup.add(glassRoof);
+  box(x1-x0+0.5, 0.04, 0.05, "#3a403c", (x0+x1)/2, 1.645, z0-0.3); box(x1-x0+0.5, 0.04, 0.05, "#3a403c", (x0+x1)/2, 1.645, z1+0.3);
+  box(0.05, 0.04, z1-z0+0.6, "#3a403c", x0-0.25, 1.645, (z0+z1)/2); box(0.05, 0.04, z1-z0+0.6, "#3a403c", x1+0.25, 1.645, (z0+z1)/2);
+  canopy.x0 = x0-0.25; canopy.x1 = x1+0.25; canopy.z0 = z0-0.3; canopy.z1 = z1+0.3; canopy.y = ELEV[1] + 1.66;
   textPlane(0.9, 0.32, (g, w, h) => {
     g.fillStyle = "#e8b520"; g.fillRect(0,0,w,h);
     g.fillStyle = "#1c231f"; g.font = '600 ' + Math.round(h*0.5) + 'px "IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
@@ -1607,7 +1730,8 @@ function statusOf(p){
     case "as":      return {key:"as", text:"A/S 접수", cls:"st-visit"};
     case "wait":    return {key:"wait", text:p.def.visitor ? "로비 대기" : "로비", cls:p.def.visitor ? "st-visit" : "st-break"};
     case "bench":   { const o = officeOf(p.tile), bk = benchKinds.get(nk(p.tile.f, p.tile.x, p.tile.y)); const k = bk && bk.kind;
-      return {key:"bench"+o+k, text:o === "as" ? "수리 중" : k === "solder" ? "납땜 중" : k === "scope" ? "오실로스코프 측정" : k === "debug" ? "보드 디버깅" : "하드웨어 테스트", cls:"st-work"}; }
+      const LT = {solder:"납땜 중", scope:"오실로스코프 측정", debug:"보드 디버깅", trace:"TRACE32 디버깅", measure:"계측 장비 측정", review:"보드 리뷰", chamber:"챔버 시험"};
+      return {key:"bench"+o+k, text:o === "as" ? "수리 중" : (LT[k] || "하드웨어 테스트"), cls:"st-work"}; }
     case "coffee":  return {key:"coffee", text:"커피 주문", cls:"st-coffee"};
     case "cafe":    return {key:"cafe", text:"카페", cls:"st-coffee"};
     case "barista": return {key:"barista", text:"바리스타", cls:"st-coffee"};
@@ -1935,7 +2059,7 @@ class Person {
       if (this.bladder >= 1 || Math.random() < 0.04) ok = (this.def.g === "m" && Math.random() < 0.65 && this.goToFree("y", mine)) || this.goToFree("u", mine);
       if (!ok && this.def.smoker && this.crave >= 1) ok = this.goToFree("s");
       if (!ok && this.def.server && Math.random() < this.def.server) ok = this.goToFree("q");
-      if (!ok && (this.def.team === "hw" || this.def.team === "emb") && Math.random() < 0.3) ok = this.goToFree("t", s => officeOf(s) === "hw" || officeOf(s) === "emb");   /* 하드웨어팀 전체가 랩·실험대 공용 */
+      if (!ok && (this.def.team === "hw" || this.def.team === "emb") && Math.random() < 0.3) ok = this.goToFree("t", s => officeOf(s) === "lab");   /* 하드웨어팀 전체가 랩·실험대 공용 */
       if (!ok && this.def.lead && Math.random() < 0.12 && ceo.activity === "desk" && ceo.state === "sit" && !exec.active) ok = this.goToFree("o", s => officeOf(s) === "ceo");
       if (!ok){
         /* 대부분은 자리에서 계속 일함 */
@@ -2132,6 +2256,9 @@ class Person {
       else if (this.activity === "bench"){
         const bk = benchKinds.get(nk(this.tile.f, this.tile.x, this.tile.y)), k = bk && bk.kind;
         if (k === "solder"){ aR = -1.1 + Math.sin(t*9+i)*0.04; aL = -0.95 + Math.sin(t*2+i)*0.05; headX = 0.45; headY = 0.1; }
+        else if (k === "chamber"){ aR = Math.sin(t*0.6+i) > 0.2 ? -1.6 : -0.3; aL = -0.2; headY = Math.sin(t*0.3+i)*0.2; headX = -0.05; }
+        else if (k === "review"){ aL = -0.8; aR = this.talkUntil > t || Math.sin(t*0.8+i) > 0.4 ? -1.1 + Math.sin(t*5+i)*0.3 : -0.8; headY = Math.sin(t*0.5+i)*0.5; }
+        else if (k === "trace" || k === "measure"){ aL = -1.25 + Math.sin(t*10+i)*0.06; aR = Math.sin(t*0.9+i) > 0.5 ? -1.5 : -1.2 + Math.sin(t*9+i)*0.06; headX = 0.2; headY = Math.sin(t*0.5+i)*0.2; }
         else if (k === "scope"){ aL = -1.15 + Math.sin(t*1.5+i)*0.05; aR = Math.sin(t*0.7+i) > 0.3 ? -1.45 + Math.sin(t*5)*0.05 : -1.1; headY = Math.sin(t*0.45+i) > 0 ? 0.35 : -0.1; headX = 0.15; }
         else { aL = -1.2 + Math.sin(t*6+i)*0.12; aR = -1.25 + Math.sin(t*7+i+1)*0.15; headY = Math.sin(t*0.4+i)*0.25; }
       }
@@ -3414,7 +3541,8 @@ function updateRoofFx(dt, t){
   if (rain.visible){
     for (let i=0;i<RAIN_N;i++){
       const o = i*6; let y = rainPos[o+1] - 9*dt*sp;
-      if (y < roofBox.y0){ const x = rx(), z = rz(); y = roofBox.y1 + rand(0,0.6); rainPos[o] = x; rainPos[o+2] = z; rainPos[o+3] = x-0.02; rainPos[o+5] = z; }
+      const rx0 = rainPos[o], rz0 = rainPos[o+2], under = rx0 > canopy.x0 && rx0 < canopy.x1 && rz0 > canopy.z0 && rz0 < canopy.z1;
+      if (y < (under ? canopy.y : roofBox.y0)){ const x = rx(), z = rz(); y = roofBox.y1 + rand(0,0.6); rainPos[o] = x; rainPos[o+2] = z; rainPos[o+3] = x-0.02; rainPos[o+5] = z; }
       rainPos[o+1] = y; rainPos[o+4] = y - 0.22;
     }
     rainGeo.attributes.position.needsUpdate = true;
@@ -3423,7 +3551,8 @@ function updateRoofFx(dt, t){
     for (let i=0;i<SNOW_N;i++){
       const o = i*3; let y = snowPos[o+1] - 0.55*dt*sp;
       snowPos[o] += Math.sin(t*1.3 + i)*0.004*sp;
-      if (y < roofBox.y0){ y = roofBox.y1 + rand(0,0.6); snowPos[o] = rx(); snowPos[o+2] = rz(); }
+      const sx0 = snowPos[o], sz0 = snowPos[o+2], underS = sx0 > canopy.x0 && sx0 < canopy.x1 && sz0 > canopy.z0 && sz0 < canopy.z1;
+      if (y < (underS ? canopy.y : roofBox.y0)){ y = roofBox.y1 + rand(0,0.6); snowPos[o] = rx(); snowPos[o+2] = rz(); }
       snowPos[o+1] = y;
     }
     snowGeo.attributes.position.needsUpdate = true;
@@ -3482,8 +3611,8 @@ btnOT.addEventListener("click", () => {
   refreshRoster();
 });
 document.querySelectorAll("[data-wx]").forEach(b => b.addEventListener("click", () => {
-  weather = b.dataset.wx;
   document.querySelectorAll("[data-wx]").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+  weather = b.dataset.wx;
   toast(weather === "rain" ? "옥상에 비가 내려요" : weather === "snow" ? "옥상에 눈이 내려요" : "옥상 날씨 맑음");
 }));
 document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", () => {
