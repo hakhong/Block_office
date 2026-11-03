@@ -2568,10 +2568,14 @@ window.addEventListener("keydown", e => {
     if (e.code === "Space" && player.jumpY === 0 && player.state !== "sit") player.jumpV = 4.2;
     return;
   }
-  const k = e.key.toLowerCase();
+  /* 한글 입력 상태(ㅊ, ㅍ 등)에서도 동작하도록 물리 키(e.code) 기준 */
+  const k = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : /^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key.toLowerCase();
   if (k === "v") setCamMode(camMode === "overview" ? "third" : camMode === "third" ? "first" : "overview");
   else if (k === "e") sitOrStand();
-  else if (k === "c" || e.key === "Escape"){ if (viewTarget !== player) setViewTarget(player); }
+  else if (k === "c" || e.key === "Escape"){
+    if (viewTarget !== player) setViewTarget(player);
+    if (k === "c" && camMode === "overview"){ setFollowTo(null); setCamMode("third"); }
+  }
   else if (k === "f" && camMode === "overview") setFollowTo(follow === player ? null : player);
   else if (k === "0") setMode("all");
   else if (k === "1") setMode(0);
