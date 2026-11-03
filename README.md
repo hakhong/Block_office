@@ -2,6 +2,8 @@
 
 > 블록 캐릭터들이 출근하고, 일하고, 점심 먹고, 퇴근하는 **3D 복셀 사무실 시뮬레이션**
 > Three.js 하나로 만든 단일 HTML 웹 프로토타입
+>
+> **▶ 데모: https://hakhong.github.io/block-office/**
 
 <!-- 스크린샷: docs/screenshot.png 를 추가한 뒤 아래 주석을 해제하세요 -->
 <!-- ![Block Office](docs/screenshot.png) -->
@@ -18,7 +20,7 @@ Block Office는 작은 회사의 하루를 3D로 들여다보는 웹 시뮬레�
 - **사는 재미**: 내 캐릭터로 직접 걸어 다니며 자리에 앉고 화이트보드에 글을 씁니다. 면접자가 되어 볼 수도 있습니다.
 - **세는 재미**: 화장실, 옥상, 업무시간, 대표 호출, 회의 참석을 사람별로 기록합니다.
 
-설치나 빌드 없이 `block-office.html` 파일 하나를 브라우저로 열면 바로 실행됩니다.
+설치나 빌드 없이 [데모 페이지](https://hakhong.github.io/block-office/)에서 바로 실행하거나, `index.html` 파일 하나를 브라우저로 열면 됩니다.
 
 ## 주요 기능
 
@@ -83,13 +85,13 @@ Block Office는 작은 회사의 하루를 3D로 들여다보는 웹 시뮬레�
 ## 실행 방법
 
 ```bash
-git clone https://github.com/<your-id>/block-office.git
+git clone https://github.com/hakhong/block-office.git
 cd block-office
 # 그냥 열기
-open block-office.html            # macOS
-start block-office.html           # Windows
+open index.html                   # macOS
+start index.html                  # Windows
 # 또는 로컬 서버
-python3 -m http.server 8000       # → http://localhost:8000/block-office.html
+python3 -m http.server 8000       # → http://localhost:8000/
 ```
 
 > Three.js(r128)를 cdnjs에서 불러오므로 첫 실행 때 인터넷 연결이 필요합니다.
@@ -106,7 +108,7 @@ python3 -m http.server 8000       # → http://localhost:8000/block-office.html
 
 ```
 block-office/
-├─ block-office.html   # 실행 파일 (단일 HTML)
+├─ index.html         # 실행 파일 (단일 HTML, GitHub Pages 진입점)
 ├─ tools/
 │  └─ maps.py          # 1층·옥상 타일맵 생성 스크립트 (선택)
 ├─ docs/
