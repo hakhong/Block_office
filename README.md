@@ -3,7 +3,7 @@
 > 블록 캐릭터들이 출근하고, 일하고, 점심 먹고, 퇴근하는 **3D 복셀 사무실 시뮬레이션**
 > Three.js 하나로 만든 단일 HTML 웹 프로토타입
 >
-> **▶ 데모: https://hakhong.github.io/block-office/**
+> **▶ 데모: [https://hakhong.github.io/Block-office/](https://hakhong.github.io/Block_office/)**
 
 <!-- 스크린샷: docs/screenshot.png 를 추가한 뒤 아래 주석을 해제하세요 -->
 <!-- ![Block Office](docs/screenshot.png) -->
@@ -21,7 +21,7 @@ Block Office는 30명 안팎의 기술 회사의 하루를 3D로 들여다보는
 - **세는 재미**: 화장실, 옥상, 업무시간, 대표 호출, 회의 참석을 사람별로 기록합니다.
 - **실험해 보는 재미**: Three.js를 공부하려고 만든 프로젝트입니다. 실제 사람과 실시간으로 연동되지는 않고, 모든 직원은 시뮬레이션으로 움직입니다.
 
-설치나 빌드 없이 [데모 페이지](https://hakhong.github.io/block-office/)에서 바로 실행하거나, `index.html` 파일 하나를 브라우저로 열면 됩니다.
+설치나 빌드 없이 [데모 페이지](https://hakhong.github.io/Block_office/)에서 바로 실행하거나, `index.html` 파일 하나를 브라우저로 열면 됩니다.
 
 ## 주요 기능
 
