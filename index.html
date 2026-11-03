@@ -405,15 +405,15 @@ const FLOORS = [
     "#.======................aQa.aQabN#........w",
     "#..............................bN#..LL..J.w",
     "###############gg.....ggggggggggg#P.oo...Pw",
-    "wFFFFFF....PgP........g.c.c.g8.55w#########",
-    "w..WWW..U...g.........g.DDDDg..t.w         ",
-    "w..ttt.EUf..g..GG.......DDDDgt77tw         ",
-    "w......EUf....RRRR....g.c.c..t77tw         ",
-    "w......EUf..g.iiii....ggggggg....w         ",
-    "w.......U...g.....LL..g.c.c..t66tw         ",
-    "w...........g....oooo.g.DDDDgt66tw         ",
-    "w........eeeg....SSSS...DDDDg....w         ",
-    "wP..........g.........g.c.c.gF..Fw         ",
+    "wFFFFFF....PgP........g.DDDDDD.FFw#########",
+    "w..WWW..U...g...........c.c.c....w         ",
+    "w..ttt.EUf..g..GG.....ggg.ggggg.gw         ",
+    "w......EUf....RRRR....g55.ttttt.8w         ",
+    "w......EUf..g.iiii....g.t.66666..w         ",
+    "w.......U...g.....LL..gF..ttttt.Fw         ",
+    "w...........g....oooo.ggg.ggggg.gw         ",
+    "w........eeeg....SSSS...c.c.c....w         ",
+    "wP..........g.........g.DDDDDD.FFw         ",
     "###############....###############         "
   ]},
   { name:"옥상", tag:"RF", elev:2.6, map:[
@@ -480,7 +480,7 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const ROOM_NAME = {A:"대회의실", B:"회의실 B", C:"회의실 C"};
 const officeOf = t => t.f !== 0 ? "" : (t.x>=1 && t.x<=7 && t.y>=1 && t.y<=6) ? "ceo" : (t.x>=9 && t.x<=15 && t.y>=1 && t.y<=6) ? "ops" : (t.y>=10 && t.y<=13) ? (t.x>=1 && t.x<=6 ? "dev" : t.x>=8 && t.x<=12 ? "design" : t.x>=14 && t.x<=20 ? "biz" : "") :
-  (t.y>=28 && t.y<=36) ? (t.x>=1 && t.x<=11 ? "as" : t.x>=13 && t.x<=21 ? "lobby" : t.x>=29 && t.x<=32 ? "lab" : t.x>=23 && t.x<=28 ? (t.y<=31 ? "hw" : "emb") : "") : "";
+  (t.y>=28 && t.y<=36) ? (t.x>=1 && t.x<=11 ? "as" : t.x>=13 && t.x<=21 ? "lobby" : t.x>=23 && t.x<=32 ? (t.y<=29 ? "hw" : t.y>=31 && t.y<=33 ? "lab" : t.y>=35 ? "emb" : "") : "") : "";
 const roomOf = t => t.f===0 && t.x>=24 && t.x<=32 && t.y<=17 ? (t.y<7 ? "A" : t.y<13 ? "B" : "C") : "";
 const loungeOf = t => (t.f===0 && t.x>=34 && t.x<=41) ? (t.y>=15 && t.y<=22 ? "rest" : t.y>=24 && t.y<=27 ? "women" : "") : "";
 const LOUNGE_NAME = {rest:"휴게실", women:"여성 휴게실"};
@@ -593,6 +593,7 @@ function zone(f,x,y){
   if (x>=2 && x<=11 && y>=15 && y<=19) return ["#a7a99f","#999b91"];
   return ["#bfa988","#ad9776"];
 }
+let roofFloorMat = null;
 function floorMesh(f){
   const S = 32, c = document.createElement("canvas");
   c.width = W*S; c.height = H*S;
@@ -608,6 +609,7 @@ function floorMesh(f){
   const t = new THREE.CanvasTexture(c);
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const m = new THREE.Mesh(new THREE.PlaneGeometry(W,H), new THREE.MeshLambertMaterial({map:t, transparent:true, alphaTest:0.5}));
+  if (f === 1) roofFloorMat = m.material;
   m.rotation.x = -Math.PI/2; m.position.y = 0.002; m.receiveShadow = true;
   groups[f].add(m);
 }
@@ -826,70 +828,99 @@ function fumeArm(f, seatKey, hx, hz, wallX){
 }
 /* ───────── 공용 랩실: 대형 실험 테이블 + 원형 테이블 + 온도 챔버 ───────── */
 function buildLab(){
+  /* 공용 랩실 (y31-33): 가운데 거대한 원형 테이블(3x3) 하나에 공용 장비를 둘러 배치. 서쪽 x26 / 동쪽 x30 작업 자리 */
   curGroup = groups[0];
-  const f = 0, X = wx, Z = wz, scr = (w,h,x,y,z,ry) => { const cv = document.createElement("canvas"); cv.width = 160; cv.height = 100; const tx = new THREE.CanvasTexture(cv); const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:tx})); m.position.set(x,y,z); m.rotation.y = ry; curGroup.add(m); return {canvas:cv, tex:tx}; };
+  const f = 0, X = wx, Z = wz;
+  const scr = (w,h,x,y,z,ry) => { const cv = document.createElement("canvas"); cv.width = 160; cv.height = 100; const tx = new THREE.CanvasTexture(cv); const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:tx})); m.position.set(x,y,z); m.rotation.y = ry; curGroup.add(m); return {canvas:cv, tex:tx}; };
   const label = (txt, w, h, x, y, z, ry, bg="#1d2025", fg="#e8f0ea") => textPlane(w, h, (c,cw,ch) => { c.fillStyle = bg; c.fillRect(0,0,cw,ch); c.fillStyle = fg; c.font = "700 " + Math.round(ch*0.6) + "px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(txt, cw/2, ch/2); }, x, y, z, ry);
-  const reg = (x, y, kind) => benchKinds.set(nk(f,x,y), {kind, tip:null});
-  /* 대형 실험 테이블 (x30-31, y30-31): 이음새 없는 큰 상판 + 정전기 매트 */
-  { const cx = (X(30)+X(31))/2, cz = (Z(30)+Z(31))/2;
-    box(1.96,0.06,1.96,"#d8cfb8",cx,0.42,cz); box(1.8,0.008,1.8,"#3e7a6a",cx,0.454,cz,{cast:false});
-    for (const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) box(0.07,0.4,0.07,"#5b5148",cx+sx*0.9,0.2,cz+sz*0.9);
-    box(0.5,0.04,0.12,"#2b2f36",cx,0.48,cz);   /* 가운데 멀티탭 */
-    /* 서쪽(자리 29,30): 오실로스코프 */
-    const sx0 = X(30) - 0.1, sz0 = Z(30);
-    box(0.26,0.22,0.4,"#c9ccc4",sx0+0.1,0.57,sz0); box(0.02,0.16,0.24,"#1d2025",sx0-0.035,0.58,sz0-0.04);
-    const s1 = scr(0.22,0.14,sx0-0.047,0.58,sz0-0.04,-Math.PI/2); s1.key = nk(f,29,30); scopes.push(s1); drawScope(s1,0,false);
-    for (let k=0;k<4;k++) box(0.012,0.025,0.025,["#ffe14d","#3fe0ff","#e8475f","#7fd1a8"][k],sx0-0.035,0.49,sz0-0.14+k*0.05,{cast:false});
-    const p1 = box(0.3,0.008,0.008,"#ffe14d",sx0-0.25,0.465,sz0+0.12,{cast:false}); p1.rotation.y = 0.5;
-    box(0.2,0.012,0.14,"#1f7a4a",sx0-0.25,0.46,sz0+0.2);
-    reg(29,30,"scope");
-    /* 서쪽(자리 29,31): TRACE32 디버거 + 타깃 보드 + 노트북 */
-    const tx0 = X(30) - 0.1, tz0 = Z(31);
-    box(0.22,0.07,0.16,"#2f6fd8",tx0+0.1,0.495,tz0-0.2); label("TRACE32",0.2,0.05,tx0-0.012,0.5,tz0-0.2,-Math.PI/2,"#2f6fd8","#ffffff");
-    box(0.03,0.01,0.012,"#52d18a",tx0+0.0,0.535,tz0-0.25,{cast:false});
-    const rb = box(0.32,0.004,0.05,"#9aa3a8",tx0-0.12,0.462,tz0-0.06,{cast:false}); rb.rotation.y = -0.6;
-    box(0.22,0.015,0.16,"#1f7a4a",tx0-0.25,0.465,tz0+0.08); box(0.06,0.02,0.06,"#25292d",tx0-0.25,0.48,tz0+0.08);
-    for (let k=0;k<3;k++) box(0.015,0.012,0.015,["#ff4d4d","#52d18a","#ffe14d"][k],tx0-0.33+k*0.03,0.478,tz0+0.15,{cast:false});
-    box(0.28,0.015,0.2,"#b8bcc2",tx0+0.1,0.465,tz0+0.2); { const lid = box(0.015,0.18,0.28,"#b8bcc2",tx0+0.24,0.56,tz0+0.2); lid.rotation.z = -0.2; const ls = new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.15), screens[0]); ls.position.set(tx0+0.228,0.56,tz0+0.2); ls.rotation.set(0,-Math.PI/2,0.2); curGroup.add(ls); }
-    reg(29,31,"trace");
-    /* 동쪽(자리 32,30): 납땜 스테이션 + 흡입 후드 */
-    const hx = X(31) + 0.1, hz = Z(30);
-    box(0.18,0.1,0.16,"#3a3f45",hx-0.12,0.51,hz-0.25); box(0.012,0.04,0.08,"#e8475f",hx-0.025,0.53,hz-0.25,{cast:false});
-    box(0.06,0.08,0.06,"#2b2f36",hx-0.1,0.5,hz+0.2);
-    const ironG = new THREE.Group(); ironG.position.set(hx+0.1,0.52,hz-0.02); ironG.rotation.set(0,-0.4,0.5); curGroup.add(ironG);
+  const reg = (x, y, kind, extra) => benchKinds.set(nk(f,x,y), {kind, tip:null, ...(extra||{})});
+  /* 긴 실험 테이블: 가운데는 직사각형, 양 끝만 반원 (x26~30, y32). 북쪽·남쪽 자리 5개씩 */
+  const x0 = X(26), x1 = X(30), cz = Z(32), D = 1.3, TOP = 0.45, NZ = cz - 0.36, SZ = cz + 0.36;
+  { const top = box(x1-x0, 0.06, D, "#d8cfb8", (x0+x1)/2, 0.42, cz);
+    box(x1-x0, 0.008, D-0.2, "#3e7a6a", (x0+x1)/2, 0.455, cz, {cast:false});
+    for (const ex of [x0, x1]){
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(D/2, D/2, 0.06, 28), mat("#d8cfb8")); cap.position.set(ex,0.42,cz); cap.castShadow = cap.receiveShadow = true; curGroup.add(cap);
+      const cm = new THREE.Mesh(new THREE.CylinderGeometry(D/2-0.1, D/2-0.1, 0.008, 28), mat("#3e7a6a")); cm.position.set(ex,0.455,cz); curGroup.add(cm);
+      box(0.1,0.4,0.1,"#5b5148",ex,0.2,cz);
+    }
+    box(0.08,0.4,0.6,"#5b5148",(x0+x1)/2,0.2,cz);
+    /* 가운데 줄: 멀티탭·부품함 */
+    for (let k=0;k<3;k++){ box(0.5,0.04,0.1,"#2b2f36",x0+0.6+k*1.4,TOP+0.02,cz); }
+    for (let k=0;k<4;k++) box(0.2,0.05,0.14,["#e8475f","#3b78d0","#ffd23f","#2f9e77"][k],x0+0.2+k*1.15,TOP+0.025,cz+0.08,{cast:false});
+  }
+  /* 전동 드라이버: 충전 거치대 + 테이블 곳곳 */
+  const driver = (x, z, ry, col) => { const g = new THREE.Group(); g.position.set(x, TOP, z); g.rotation.y = ry; curGroup.add(g);
+    box(0.05,0.13,0.05,col,0,0.09,0,{parent:g}); box(0.06,0.05,0.12,col,0,0.17,0.035,{parent:g}); box(0.012,0.012,0.07,"#c9ccc4",0,0.17,0.13,{parent:g,cast:false}); box(0.06,0.03,0.06,"#2b2f36",0,0.015,0,{parent:g}); };
+  box(0.36,0.04,0.12,"#2b2f36",X(28)+0.1,TOP+0.02,cz-0.12); for (let k=0;k<3;k++) driver(X(28)-0.02+k*0.11, cz-0.12, 0, ["#e8b520","#2f6fd8","#e8475f"][k]);
+  driver(X(27)+0.25, SZ+0.05, 1.2, "#e8b520"); driver(X(30)-0.2, NZ-0.02, -0.8, "#2f9e77");
+  /* 북쪽 (26,31): 오실로스코프 */
+  { const x = X(26), z = NZ;
+    box(0.36,0.22,0.26,"#c9ccc4",x,TOP+0.11,z+0.1); box(0.22,0.16,0.02,"#1d2025",x-0.03,TOP+0.12,z-0.035);
+    const sc = scr(0.2,0.13,x-0.03,TOP+0.12,z-0.047,Math.PI); sc.key = nk(f,26,31); scopes.push(sc); drawScope(sc,0,false);
+    const p1 = box(0.3,0.008,0.008,"#ffe14d",x+0.25,TOP+0.008,z-0.05,{cast:false}); p1.rotation.y = 0.4;
+    reg(26,31,"scope"); }
+  /* 북쪽 (27,31): TRACE32 + 타깃 보드 + 노트북 */
+  { const x = X(27), z = NZ;
+    box(0.16,0.07,0.22,"#2f6fd8",x-0.25,TOP+0.035,z+0.12); label("TRACE32",0.2,0.05,x-0.25,TOP+0.04,z+0.008,Math.PI,"#2f6fd8","#ffffff");
+    const rb = box(0.05,0.004,0.28,"#9aa3a8",x-0.1,TOP+0.004,z+0.02,{cast:false}); rb.rotation.y = 0.6;
+    box(0.2,0.015,0.15,"#1f7a4a",x+0.05,TOP+0.008,z-0.08); for (let k=0;k<3;k++) box(0.015,0.012,0.015,["#ff4d4d","#52d18a","#ffe14d"][k],x+0.0+k*0.03,TOP+0.02,z-0.13,{cast:false});
+    box(0.26,0.015,0.19,"#b8bcc2",x+0.28,TOP+0.008,z+0.05); { const lid = box(0.26,0.17,0.015,"#b8bcc2",x+0.28,TOP+0.09,z+0.17); lid.rotation.x = 0.2; const ls = new THREE.Mesh(new THREE.PlaneGeometry(0.23,0.14), screens[0]); ls.position.set(x+0.28,TOP+0.09,z+0.158); ls.rotation.set(-0.2,Math.PI,0); curGroup.add(ls); }
+    reg(27,31,"trace"); }
+  /* 북쪽 (28,31): 납땜 스테이션 + 흡입 후드 → 덕트 → 외벽 배기팬 */
+  { const x = X(28), z = NZ;
+    box(0.18,0.1,0.16,"#3a3f45",x+0.3,TOP+0.05,z+0.05); box(0.08,0.04,0.012,"#e8475f",x+0.3,TOP+0.07,z-0.035,{cast:false});
+    const ironG = new THREE.Group(); ironG.position.set(x-0.05,TOP+0.06,z-0.05); ironG.rotation.set(-0.5,0.3,0); curGroup.add(ironG);
     box(0.03,0.16,0.03,"#2b2f36",0,0.04,0,{parent:ironG}); box(0.012,0.06,0.012,"#c9ccc4",0,-0.07,0,{parent:ironG,cast:false});
     const tip = new THREE.Mesh(new THREE.BoxGeometry(0.014,0.02,0.014), new THREE.MeshBasicMaterial({color:"#a35a2a"})); tip.position.y = -0.105; ironG.add(tip);
-    box(0.24,0.008,0.18,"#2f9e77",hx+0.05,0.463,hz+0.02,{cast:false}); box(0.07,0.04,0.07,"#c9ccc4",hx-0.2,0.48,hz+0.05);
-    benchKinds.set(nk(f,32,30), {kind:"solder", tip});
-    fumeArm(f, nk(f,32,30), hx+0.05, hz, X(33) - 0.5);
-    /* 동쪽(자리 32,31): 계측기 랙 (파워서플라이·함수발생기·스펙트럼 분석기·멀티미터) */
-    const mx = X(31) + 0.15, mz = Z(31);
-    box(0.3,0.12,0.42,"#2b2f36",mx-0.05,0.52,mz-0.05); box(0.3,0.12,0.42,"#c9ccc4",mx-0.05,0.64,mz-0.05); box(0.3,0.14,0.42,"#3a3f45",mx-0.05,0.77,mz-0.05);
-    box(0.012,0.04,0.12,"#ff4d4d",mx+0.105,0.53,mz-0.1,{cast:false}); box(0.012,0.04,0.12,"#52d18a",mx+0.105,0.53,mz+0.06,{cast:false});
-    const s2 = scr(0.18,0.1,mx+0.103,0.77,mz-0.05,Math.PI/2); s2.key = nk(f,32,31); scopes.push(s2); drawScope(s2,0,false);
-    box(0.08,0.025,0.14,"#ffd23f",mx+0.15,0.47,mz+0.28,{cast:false});
-    reg(32,31,"measure");
-  }
-  /* 원형 테이블 (x30-31, y33-34): 보드 리뷰·회의 */
-  { const cx = (X(30)+X(31))/2, cz = (Z(33)+Z(34))/2;
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.88,0.88,0.06,28), mat("#d8cfb8")); top.position.set(cx,0.42,cz); top.castShadow = top.receiveShadow = true; curGroup.add(top);
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.2,0.4,12), mat("#5b5148")); leg.position.set(cx,0.2,cz); curGroup.add(leg);
-    box(0.26,0.012,0.18,"#1f7a4a",cx-0.15,0.458,cz-0.1); box(0.2,0.012,0.14,"#2f6fd8",cx+0.2,0.458,cz+0.15);
-    box(0.24,0.012,0.17,"#b8bcc2",cx+0.25,0.458,cz-0.3); box(0.07,0.09,0.07,"#f4f1ea",cx-0.4,0.495,cz+0.25); box(0.18,0.004,0.25,"#fbfaf6",cx-0.05,0.455,cz+0.32,{cast:false});
-    for (const [x,y] of [[29,33],[29,34],[32,33],[32,34]]) reg(x,y,"review");
-  }
-  /* 온도 챔버 (x31-32, y28) */
-  { const cx = (X(31)+X(32))/2, cz = Z(28) - 0.02;
-    box(1.8,1.7,0.86,"#e6e8e3",cx,0.85,cz); box(1.82,0.12,0.88,"#c9ccc4",cx,0.06,cz);
-    box(0.95,1.2,0.04,"#d3d6ce",cx-0.25,0.85,cz+0.45); box(0.5,0.5,0.01,"#3a4a5a",cx-0.25,1.0,cz+0.472,{cast:false});
-    box(0.05,0.3,0.06,"#9aa3a8",cx+0.18,0.85,cz+0.48);
-    box(0.5,0.6,0.03,"#2b2f36",cx+0.55,1.05,cz+0.45);
-    const c1 = scr(0.42,0.22,cx+0.55,1.18,cz+0.468,0); chamberScreen = c1;
-    drawChamber(false);
-    box(0.06,0.06,0.02,"#52d18a",cx+0.42,0.88,cz+0.47,{cast:false}); chamberLamp = box(0.06,0.06,0.02,"#ff9a1f",cx+0.55,0.88,cz+0.47,{cast:false});
-    label("온도·습도 챔버",0.8,0.12,cx,1.62,cz+0.435,0,"#2b2f36","#ffd23f");
-    reg(31,29,"chamber");
-  }
+    box(0.22,0.008,0.16,"#2f9e77",x-0.1,TOP+0.004,z-0.12,{cast:false});
+    reg(28,31,"solder",{tip});
+    fumeArm(f, nk(f,28,31), x-0.1, z-0.08, X(33) - 0.5); }
+  /* 북쪽 (29,31): 계측기 (파워서플라이·함수발생기·스펙트럼 분석기) */
+  { const x = X(29), z = NZ + 0.08;
+    box(0.4,0.12,0.28,"#2b2f36",x,TOP+0.06,z); box(0.4,0.12,0.28,"#c9ccc4",x,TOP+0.18,z); box(0.4,0.14,0.28,"#3a3f45",x,TOP+0.31,z);
+    box(0.12,0.04,0.012,"#ff4d4d",x-0.1,TOP+0.07,z-0.145,{cast:false}); box(0.12,0.04,0.012,"#52d18a",x+0.1,TOP+0.07,z-0.145,{cast:false});
+    const s2 = scr(0.18,0.1,x,TOP+0.31,z-0.143,Math.PI); s2.key = nk(f,29,31); scopes.push(s2); drawScope(s2,0,false);
+    reg(29,31,"measure"); }
+  /* 북쪽 (30,31): 임베디드 보드 디버깅 */
+  { const x = X(30), z = NZ;
+    box(0.22,0.015,0.16,"#1f7a4a",x,TOP+0.008,z-0.05); box(0.06,0.02,0.06,"#25292d",x,TOP+0.02,z-0.05); box(0.1,0.03,0.06,"#2b2f36",x+0.2,TOP+0.015,z+0.05); box(0.12,0.04,0.08,"#3b78d0",x-0.22,TOP+0.02,z+0.05);
+    reg(30,31,"debug"); }
+  /* 남쪽 (26,33): 보드 리뷰 (회로도) */
+  { const x = X(26), z = SZ;
+    box(0.22,0.012,0.16,"#1f7a4a",x-0.15,TOP+0.006,z); box(0.28,0.004,0.2,"#fbfaf6",x+0.15,TOP+0.002,z+0.02,{cast:false});
+    for (let k=0;k<4;k++) box(0.006,0.002,0.15,"#3b78d0",x+0.06+k*0.06,TOP+0.006,z+0.02,{cast:false});
+    reg(26,33,"review"); }
+  /* 남쪽 (27,33)·(28,33): 기구 조립 (케이스·나사 트레이·전동 드라이버) */
+  for (const xx of [27, 28]){ const x = X(xx), z = SZ;
+    box(0.3,0.1,0.2,"#9aa3a8",x,TOP+0.05,z); box(0.28,0.01,0.18,"#1f7a4a",x,TOP+0.1,z);
+    box(0.14,0.02,0.1,"#d4af37",x+0.28,TOP+0.01,z+0.05); for (let k=0;k<4;k++) box(0.012,0.012,0.012,"#c9ccc4",x+0.24+k*0.025,TOP+0.026,z+0.05,{cast:false});
+    driver(x-0.27, z+0.05, 0.6 + xx, xx === 27 ? "#e8475f" : "#2f6fd8");
+    reg(xx,33,"assembly"); }
+  /* 남쪽 (29,33): 두 번째 오실로스코프 */
+  { const x = X(29), z = SZ;
+    box(0.36,0.22,0.26,"#c9ccc4",x,TOP+0.11,z-0.1); box(0.22,0.16,0.02,"#1d2025",x+0.03,TOP+0.12,z+0.035);
+    const sc = scr(0.2,0.13,x+0.03,TOP+0.12,z+0.047,0); sc.key = nk(f,29,33); scopes.push(sc); drawScope(sc,0,false);
+    reg(29,33,"scope"); }
+  /* 남쪽 (30,33): 두 번째 납땜 스테이션 + 흡입 후드 → 덕트 → 외벽 배기팬 */
+  { const x = X(30), z = SZ;
+    box(0.18,0.1,0.16,"#3a3f45",x-0.28,TOP+0.05,z-0.05); box(0.08,0.04,0.012,"#e8475f",x-0.28,TOP+0.07,z+0.035,{cast:false});
+    const ironG = new THREE.Group(); ironG.position.set(x+0.02,TOP+0.06,z+0.05); ironG.rotation.set(0.5,-0.3,0); curGroup.add(ironG);
+    box(0.03,0.16,0.03,"#2b2f36",0,0.04,0,{parent:ironG}); box(0.012,0.06,0.012,"#c9ccc4",0,-0.07,0,{parent:ironG,cast:false});
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.014,0.02,0.014), new THREE.MeshBasicMaterial({color:"#a35a2a"})); tip.position.y = -0.105; ironG.add(tip);
+    box(0.22,0.008,0.16,"#2f9e77",x+0.08,TOP+0.004,z+0.1,{cast:false}); box(0.07,0.04,0.07,"#c9ccc4",x+0.3,TOP+0.02,z+0.05); box(0.03,0.045,0.03,"#d4af37",x+0.3,TOP+0.02,z+0.05,{cast:false});
+    box(0.07,0.025,0.13,"#ffd23f",x-0.05,TOP+0.012,z-0.12,{cast:false});
+    reg(30,33,"solder",{tip});
+    fumeArm(f, nk(f,30,33), x+0.08, z+0.08, X(33) - 0.5); }
+  /* 온도·습도 챔버 (x23-24, y31) + 자리 (24,32) */
+  { const ccx = (X(23)+X(24))/2, ccz = Z(31) - 0.05;
+    box(1.8,1.7,0.86,"#e6e8e3",ccx,0.85,ccz); box(1.82,0.12,0.88,"#c9ccc4",ccx,0.06,ccz);
+    box(0.95,1.2,0.04,"#d3d6ce",ccx-0.25,0.85,ccz+0.45); box(0.5,0.5,0.01,"#3a4a5a",ccx-0.25,1.0,ccz+0.472,{cast:false});
+    box(0.05,0.3,0.06,"#9aa3a8",ccx+0.18,0.85,ccz+0.48);
+    box(0.5,0.6,0.03,"#2b2f36",ccx+0.55,1.05,ccz+0.45);
+    chamberScreen = scr(0.42,0.22,ccx+0.55,1.18,ccz+0.468,0); drawChamber(false);
+    box(0.06,0.06,0.02,"#52d18a",ccx+0.42,0.88,ccz+0.47,{cast:false}); chamberLamp = box(0.06,0.06,0.02,"#ff9a1f",ccx+0.55,0.88,ccz+0.47,{cast:false});
+    label("온도·습도 챔버",0.8,0.12,ccx,1.62,ccz+0.435,0,"#2b2f36","#ffd23f");
+    reg(24,32,"chamber"); }
 }
 let chamberScreen = null, chamberLamp = null, chamberT = 0, chamberWas = null;
 function drawChamber(on){
@@ -901,7 +932,7 @@ function drawChamber(on){
 }
 function updateLab(t, dt){
   if (chamberScreen){
-    const o = occupied.get(nk(0,31,29)), on = !!o && o.state !== "walk" && o.activity === "bench";
+    const o = occupied.get(nk(0,24,32)), on = !!o && o.state !== "walk" && o.activity === "bench";
     chamberT += dt;
     if (on !== chamberWas || (on && chamberT > 1)){ chamberT = 0; chamberWas = on; drawChamber(on); chamberLamp.material = mat(on ? "#ff4d4d" : "#ff9a1f"); }
   }
@@ -1200,10 +1231,7 @@ for (let f=0; f<NF; f++){
         box(0.04,0.12,0.04,"#9aa3a8",cx,0.52,cz+0.38);
         box(0.8,0.42,0.03,"#bfe0ea",cx,0.86,cz+0.43,{cast:false});
         break;
-      case "p":
-        box(1,0.45,1,"#c3c8bf",cx,0.225,cz);
-        box(1,0.04,1,"#a3aa9f",cx,0.47,cz,{cast:false});
-        break;
+      case "p": break;   /* 옥상 테두리 블록은 그리지 않음 (통행은 계속 막혀 있음) */
       case "A":
         box(0.22,0.62,0.22,"#3a3d40",cx,0.31,cz);
         box(0.34,0.05,0.34,"#8d9296",cx,0.64,cz);
@@ -1479,13 +1507,15 @@ doorPlate("개발팀", TEAMS.dev.color, 6, 9);
 doorPlate("디자인팀", TEAMS.design.color, 8, 9);
 doorPlate("사업팀", TEAMS.biz.color, 14, 9);
 doorPlate("A/S 센터", TEAMS.cs.color, 12, 31, true);
-doorPlate("하드웨어팀", TEAMS.hw.color, 22, 30, true);
-doorPlate("공용 랩실", TEAMS.hw.color, 28, 31, true);
-doorPlate("공용 랩실", TEAMS.emb.color, 28, 33, true);
+doorPlate("하드웨어팀", TEAMS.hw.color, 22, 29, true);
+doorPlate("공용 랩실", TEAMS.hw.color, 31, 30, false);
+doorPlate("공용 랩실", TEAMS.emb.color, 31, 34, false);
+doorPlate("공용 랩실", TEAMS.hw.color, 25, 30, false);
+doorPlate("공용 랩실", TEAMS.emb.color, 25, 34, false);
 buildLab();
 doorPlate("임베디드팀", TEAMS.emb.color, 22, 35, true);
-teamSign("하드웨어팀", TEAMS.hw.color, (wx(25)+wx(26))/2, wz(29)+0.5);
-teamSign("임베디드팀", TEAMS.emb.color, (wx(25)+wx(26))/2, wz(34)+0.5);
+teamSign("하드웨어팀", TEAMS.hw.color, wx(26)+0.5, wz(28)-0.32);
+teamSign("임베디드팀", TEAMS.emb.color, wx(26)+0.5, wz(36)+0.32);
 {
   const m = textPlane(2.7, 0.34, (g, w, h) => {
     g.fillStyle = "#1c231f"; g.fillRect(0,0,w,h); g.fillStyle = "#e8b520"; g.fillRect(0,h-6,w,6);
@@ -1506,12 +1536,18 @@ curGroup = groups[1];
   box(x1-x0+0.2, 0.1, 0.12, "#5b5148", (x0+x1)/2, 1.5, z0);
   box(x1-x0+0.2, 0.1, 0.12, "#5b5148", (x0+x1)/2, 1.5, z1);
   for (let x = x0; x <= x1 + 0.01; x += 0.75) box(0.08, 0.05, z1-z0+0.3, "#6d6156", x, 1.58, (z0+z1)/2);
-  /* 유리 천장: 비·눈은 유리 위에서 멈춤 */
-  const glassRoof = new THREE.Mesh(new THREE.BoxGeometry(x1-x0+0.5, 0.03, z1-z0+0.6), new THREE.MeshLambertMaterial({color:"#bfe3f0", transparent:true, opacity:0.32, depthWrite:false}));
-  glassRoof.position.set((x0+x1)/2, 1.63, (z0+z1)/2); glassRoof.renderOrder = 3; curGroup.add(glassRoof);
-  box(x1-x0+0.5, 0.04, 0.05, "#3a403c", (x0+x1)/2, 1.645, z0-0.3); box(x1-x0+0.5, 0.04, 0.05, "#3a403c", (x0+x1)/2, 1.645, z1+0.3);
-  box(0.05, 0.04, z1-z0+0.6, "#3a403c", x0-0.25, 1.645, (z0+z1)/2); box(0.05, 0.04, z1-z0+0.6, "#3a403c", x1+0.25, 1.645, (z0+z1)/2);
-  canopy.x0 = x0-0.25; canopy.x1 = x1+0.25; canopy.z0 = z0-0.3; canopy.z1 = z1+0.3; canopy.y = ELEV[1] + 1.66;
+  /* 유리 지붕: 나무 파고라 맨 윗부분(서까래) 위에만, 구조물 크기 그대로 */
+  { const gw = x1-x0+0.2, gd = z1-z0+0.3, gy = 1.62;
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(gw, 0.03, gd), new THREE.MeshPhongMaterial({color:"#6fc3ea", transparent:true, opacity:0.55, shininess:90, specular:"#ffffff", depthWrite:false}));
+    glass.position.set((x0+x1)/2, gy, (z0+z1)/2); glass.renderOrder = 3; curGroup.add(glass);
+    /* 유리 패널 테두리·이음새 (알루미늄 프레임) → 위에서 봐도 유리판이 또렷이 보이게 */
+    const FR = "#e6eaec", cxm = (x0+x1)/2, czm = (z0+z1)/2;
+    box(gw, 0.05, 0.06, FR, cxm, gy+0.02, czm - gd/2); box(gw, 0.05, 0.06, FR, cxm, gy+0.02, czm + gd/2);
+    box(0.06, 0.05, gd, FR, cxm - gw/2, gy+0.02, czm); box(0.06, 0.05, gd, FR, cxm + gw/2, gy+0.02, czm);
+    for (let k=1;k<6;k++) box(0.04, 0.04, gd, FR, cxm - gw/2 + k*gw/6, gy+0.02, czm, {cast:false});
+    box(gw, 0.04, 0.04, FR, cxm, gy+0.02, czm, {cast:false});
+    for (let k=0;k<6;k++){ const hl = new THREE.Mesh(new THREE.PlaneGeometry(gw/6*0.5, 0.06), new THREE.MeshBasicMaterial({color:"#ffffff", transparent:true, opacity:0.5, depthWrite:false})); hl.rotation.set(-Math.PI/2, 0, 0.6); hl.position.set(cxm - gw/2 + (k+0.5)*gw/6, gy+0.018, czm - gd/4); curGroup.add(hl); }
+    canopy.x0 = x0-0.1; canopy.x1 = x1+0.1; canopy.z0 = z0-0.15; canopy.z1 = z1+0.15; canopy.y = ELEV[1] + gy + 0.02; }
   textPlane(0.9, 0.32, (g, w, h) => {
     g.fillStyle = "#e8b520"; g.fillRect(0,0,w,h);
     g.fillStyle = "#1c231f"; g.font = '600 ' + Math.round(h*0.5) + 'px "IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
@@ -1730,7 +1766,7 @@ function statusOf(p){
     case "as":      return {key:"as", text:"A/S 접수", cls:"st-visit"};
     case "wait":    return {key:"wait", text:p.def.visitor ? "로비 대기" : "로비", cls:p.def.visitor ? "st-visit" : "st-break"};
     case "bench":   { const o = officeOf(p.tile), bk = benchKinds.get(nk(p.tile.f, p.tile.x, p.tile.y)); const k = bk && bk.kind;
-      const LT = {solder:"납땜 중", scope:"오실로스코프 측정", debug:"보드 디버깅", trace:"TRACE32 디버깅", measure:"계측 장비 측정", review:"보드 리뷰", chamber:"챔버 시험"};
+      const LT = {assembly:"기구 조립 (전동 드라이버)", solder:"납땜 중", scope:"오실로스코프 측정", debug:"보드 디버깅", trace:"TRACE32 디버깅", measure:"계측 장비 측정", review:"보드 리뷰", chamber:"챔버 시험"};
       return {key:"bench"+o+k, text:o === "as" ? "수리 중" : (LT[k] || "하드웨어 테스트"), cls:"st-work"}; }
     case "coffee":  return {key:"coffee", text:"커피 주문", cls:"st-coffee"};
     case "cafe":    return {key:"cafe", text:"카페", cls:"st-coffee"};
@@ -2256,6 +2292,7 @@ class Person {
       else if (this.activity === "bench"){
         const bk = benchKinds.get(nk(this.tile.f, this.tile.x, this.tile.y)), k = bk && bk.kind;
         if (k === "solder"){ aR = -1.1 + Math.sin(t*9+i)*0.04; aL = -0.95 + Math.sin(t*2+i)*0.05; headX = 0.45; headY = 0.1; }
+        else if (k === "assembly"){ aR = -1.25 + Math.sin(t*14+i)*0.08; aL = -1.0; headX = 0.4; headY = Math.sin(t*0.4+i)*0.1; }
         else if (k === "chamber"){ aR = Math.sin(t*0.6+i) > 0.2 ? -1.6 : -0.3; aL = -0.2; headY = Math.sin(t*0.3+i)*0.2; headX = -0.05; }
         else if (k === "review"){ aL = -0.8; aR = this.talkUntil > t || Math.sin(t*0.8+i) > 0.4 ? -1.1 + Math.sin(t*5+i)*0.3 : -0.8; headY = Math.sin(t*0.5+i)*0.5; }
         else if (k === "trace" || k === "measure"){ aL = -1.25 + Math.sin(t*10+i)*0.06; aR = Math.sin(t*0.9+i) > 0.5 ? -1.5 : -1.2 + Math.sin(t*9+i)*0.06; headX = 0.2; headY = Math.sin(t*0.5+i)*0.2; }
@@ -3491,7 +3528,7 @@ const shade = new THREE.Mesh(new THREE.BoxGeometry(roofBox.x1-roofBox.x0, roofBo
 shade.position.set((roofBox.x0+roofBox.x1)/2, (roofBox.y0+roofBox.y1)/2, (roofBox.z0+roofBox.z1)/2); shade.renderOrder = 5; scene.add(shade);
 const lamps = [];
 for (const [lx, ly, dir] of [[0,17,1],[0,23,1],[14,19,-1],[14,25,-1]]){
-  const g = new THREE.Group(); g.position.set(wx(lx), ELEV[1] + 0.47, wz(ly)); scene.add(g);
+  const g = new THREE.Group(); g.position.set(wx(lx), ELEV[1], wz(ly)); scene.add(g);
   box(0.08,1.5,0.08,"#2b2f33",0,0.75,0,{parent:g});
   box(0.5,0.06,0.08,"#2b2f33",dir*0.22,1.5,0,{parent:g});
   const bulbMat = new THREE.MeshBasicMaterial({color:"#8d9296"});
@@ -3527,7 +3564,9 @@ function skyState(M){
 function updateRoofFx(dt, t){
   const roofOn = groups[1].visible;
   const sky = skyState(dayMin());
-  shadeMat.color.copy(sky.c); shadeMat.opacity = sky.o; shade.visible = roofOn && sky.o > 0.01;
+  /* 감싸는 반투명 상자 대신 옥상 바닥 색만 노을·밤 색으로 물들임 */
+  shade.visible = false;
+  if (roofFloorMat){ const k = Math.min(1, sky.o*1.15); roofFloorMat.color.setRGB(1 - k*(1 - sky.c.r), 1 - k*(1 - sky.c.g), 1 - k*(1 - sky.c.b)); }
   const inside = cam.position.x > roofBox.x0 && cam.position.x < roofBox.x1 && cam.position.z > roofBox.z0 && cam.position.z < roofBox.z1 && cam.position.y > roofBox.y0 && cam.position.y < roofBox.y1;
   shadeMat.side = inside ? THREE.BackSide : THREE.FrontSide;
   for (const l of lamps){
