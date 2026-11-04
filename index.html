@@ -263,7 +263,7 @@ table.wc td.skip{color:#d9534f;font-weight:600}
     <span class="tclock" id="tclock">00:00</span><span class="tphase" id="tphase">실제 시각</span>
     <span class="treal" id="treal" hidden>실제 <b id="trealv">00:00</b></span>
     <span class="sep" aria-hidden="true"></span>
-    <button class="tb" type="button" id="btnReal" aria-pressed="true" title="실제 시각에 맞춰 흐름">실시간</button>
+    <button class="tb" type="button" id="btnReal" aria-pressed="true" title="자동: 실제 09:00~18:01은 실시간, 그 밖에는 가짜 시각">실시간</button>
     <button class="tb" type="button" data-jump="arrive" aria-pressed="false" title="가짜 시각 08:35부터">출근</button>
     <button class="tb" type="button" data-jump="focus" aria-pressed="false" title="가짜 시각 09:00부터">업무 집중</button>
     <button class="tb" type="button" data-jump="lunch" aria-pressed="false" title="가짜 시각 11:57부터">점심</button>
@@ -406,9 +406,9 @@ const FLOORS = [
     "#uuuu.yhuuuuu.hgHHHHHg.....TT..zB#........w",
     "#.....yh......hgqqqqqg.g...mm....#.dd.dd.9w",
     "#vvv..yh...vvvhggggg.g.gggggggggg#........w",
-    "#VVV...h...VVVhP.LL.......xxxxxx.gJ..LL..9w",
-    "#hhhh.hhh.hhhhh.oooo......KKKKKK.gJ..oo...w",
-    "#P............I.SSSS......kkkkkk.gJ..SS...w",
+    "#VVV...h...VVVhP.LL.......xxxxxx.gJ34443.9w",
+    "#hhhh.hhh.hhhhh.oooo......KKKKKK.gJ.444...w",
+    "#P............I.SSSS......kkkkkk.gJ..3....w",
     "#.ZZZZZZZZ...............................Pw",
     "#.......................aQa.aQabN#.########",
     "#.======.......................bN#.l.l.l.lw",
@@ -473,13 +473,13 @@ const STAIRS = [{a:{f:0,x:1}, b:{f:1,x:8}, run:{x0:2, x1:7, y0:24, y1:25}}];
 const NF = FLOORS.length, H = FLOORS[0].map.length, W = FLOORS[0].map[0].length;
 const ELEV = FLOORS.map(f => f.elev);
 const tileAt = (f,x,y) => (f<0||f>=NF||x<0||y<0||x>=W||y>=H) ? " " : FLOORS[f].map[y][x];
-const WALK = new Set([".","c","m","o","k","a","b","x","u","v","s","e","n","z","q","y","G","i","E","f","t","l","J","d","9"]);
-const SEATS = new Set(["c","m","o","k","a","b","u","v","s","e","n","z","q","y","G","i","E","f","t","l","J","d","9"]);
+const WALK = new Set([".","c","m","o","k","a","b","x","u","v","s","e","n","z","q","y","G","i","E","f","t","l","J","d","9","3"]);
+const SEATS = new Set(["c","m","o","k","a","b","u","v","s","e","n","z","q","y","G","i","E","f","t","l","J","d","9","3"]);
 const SITS = new Set(["c","m","o","a","b","u","e","l","J","d","G"]);
 const GLASSY = new Set(["#","w","g","r","I"]);
 const FACE = {c:"D", m:"T", k:"K", a:"Q", b:"N", x:"K", v:"V", s:"A", n:"p", z:"B", q:"H", G:"R", i:"R", E:"U", f:"U", t:"W"};
 const FIXED_FACE = {o:{dx:0,dz:-1}, e:{dx:0,dz:-1}, u:{dx:0,dz:1}, y:{dx:1,dz:0}, l:{dx:0,dz:1}, J:{dx:0,dz:1}, d:{dx:0,dz:-1}, "9":{dx:-1,dz:0}};
-const ACT_OF = {c:"desk", m:"meeting", o:"lounge", k:"coffee", a:"cafe", b:"cafe", x:"barista", u:"toilet", v:"wash", s:"smoke", e:"roof", n:"roof", z:"write", q:"server", y:"toilet", G:"reception", i:"checkin", E:"service", f:"as", t:"bench", l:"nap", J:"massage", d:"game", "9":"vr"};
+const ACT_OF = {c:"desk", m:"meeting", o:"lounge", k:"coffee", a:"cafe", b:"cafe", x:"barista", u:"toilet", v:"wash", s:"smoke", e:"roof", n:"roof", z:"write", q:"server", y:"toilet", G:"reception", i:"checkin", E:"service", f:"as", t:"bench", l:"nap", J:"massage", d:"game", "9":"vr", "3":"pool"};
 const walkable = (f,x,y) => WALK.has(tileAt(f,x,y));
 const wx = x => x - W/2 + 0.5, wz = y => y - H/2 + 0.5;
 const nk = (f,x,y) => (f*H + y)*W + x;
@@ -503,6 +503,7 @@ function neighborDir(f,x,y,want){
 function facingAt(f,x,y){
   const t = tileAt(f,x,y);
   if (t === "J" && GLASSY.has(tileAt(f,x-1,y))) return {dx:1,dz:0};
+  if (t === "3") return neighborDir(f,x,y,"4") || {dx:0,dz:-1};
   if (t === "t"){ for (const ch of ["5","6","7","W"]){ const d = neighborDir(f,x,y,ch); if (d) return d; } }
   if (FIXED_FACE[t]) return FIXED_FACE[t];
   return FACE[t] ? neighborDir(f,x,y,FACE[t]) : null;
@@ -650,7 +651,70 @@ const glassMat = new THREE.MeshLambertMaterial({color:"#a8d4e2", transparent:tru
 
 /* ───────── 가구 ───────── */
 /* 의자: 앉으면 책상 쪽으로 당겨지고, 일어나면 다시 빠짐 */
-const chairs = new Map(); const massageChairs = new Map(); const gameTVs = []; const deskBags = []; const lockers = new Map(); const deskAnims = [];
+let poolTable = null;
+/* 당구: 큐로 흰 공을 쳐서 공들이 퍼지고, 쿠션에 튕기고, 포켓에 들어감 */
+const BALL_R = 0.035, POOL_HX = 1.2, POOL_HZ = 0.64;
+function poolRack(){
+  const P = poolTable; if (!P) return;
+  let k = 1;
+  P.balls[0].x = P.cx - 0.6; P.balls[0].z = P.cz;
+  for (let r=0;r<4;r++) for (let c=0;c<=r;c++){ const b = P.balls[k++]; b.x = P.cx + 0.5 + r*0.062; b.z = P.cz + (c - r/2)*0.072; }
+  for (const b of P.balls){ b.vx = b.vz = 0; b.in = false; b.m.visible = true; b.m.position.set(b.x, 0.785, b.z); }
+  P.broken = false;
+}
+function poolStep(dt){
+  const P = poolTable, B = P.balls;
+  for (let sub=0; sub<4; sub++){
+    const h = dt/4;
+    for (const b of B){ if (b.in) continue;
+      b.x += b.vx*h; b.z += b.vz*h; const f = Math.max(0, 1 - 0.9*h); b.vx *= f; b.vz *= f;
+      if (Math.abs(b.x - P.cx) > POOL_HX){ b.x = P.cx + Math.sign(b.x - P.cx)*POOL_HX; b.vx *= -0.85; }
+      if (Math.abs(b.z - P.cz) > POOL_HZ){ b.z = P.cz + Math.sign(b.z - P.cz)*POOL_HZ; b.vz *= -0.85; }
+      for (const [px,pz] of P.pockets){ if (Math.hypot(b.x-px, b.z-pz) < 0.075){ b.in = true; b.m.visible = false; b.vx = b.vz = 0; break; } }
+    }
+    for (let i=0;i<B.length;i++) for (let j=i+1;j<B.length;j++){
+      const a = B[i], c = B[j]; if (a.in || c.in) continue;
+      const dx = c.x - a.x, dz = c.z - a.z, d = Math.hypot(dx, dz);
+      if (d > 0 && d < BALL_R*2){
+        const nx = dx/d, nz = dz/d, ov = BALL_R*2 - d;
+        a.x -= nx*ov/2; a.z -= nz*ov/2; c.x += nx*ov/2; c.z += nz*ov/2;
+        const rv = (a.vx - c.vx)*nx + (a.vz - c.vz)*nz;
+        if (rv > 0){ a.vx -= rv*nx*0.95; a.vz -= rv*nz*0.95; c.vx += rv*nx*0.95; c.vz += rv*nz*0.95; }
+      }
+    }
+  }
+  for (const b of B) if (!b.in) b.m.position.set(b.x, 0.785, b.z);
+}
+function updatePool(t, dt){
+  const P = poolTable; if (!P) return;
+  const players = people.filter(p => p.activity === "pool" && p.state !== "walk" && p.root.visible);
+  for (const p of players) p.poolShooter = false;
+  if (!players.length){ P.phase = "aim"; P.timer = 0; return; }
+  const sh = players[P.turn % players.length]; sh.poolShooter = true; P.shooter = sh;
+  const cb = P.balls[0];
+  /* 치는 사람은 흰 공 쪽으로 몸을 돌림 */
+  sh.yawTarget = Math.atan2(cb.x - sh.root.position.x, cb.z - sh.root.position.z);
+  P.timer += dt;
+  if (P.phase === "aim"){
+    if (P.timer > 2.4){
+      let tx, tz;
+      if (!P.broken){ tx = P.cx + 0.6; tz = P.cz; P.broken = true; }
+      else { let best = null, bd = 1e9; for (const b of P.balls.slice(1)){ if (b.in) continue; const d = Math.hypot(b.x-cb.x, b.z-cb.z); if (d < bd){ bd = d; best = b; } } tx = best ? best.x : P.cx; tz = best ? best.z : P.cz; }
+      const dx = tx - cb.x, dz = tz - cb.z, d = Math.hypot(dx, dz) || 1, sp = P.broken && P.turn === 0 ? 3.6 : rand(1.6, 2.8);
+      cb.vx = dx/d*sp + rand(-0.08,0.08); cb.vz = dz/d*sp + rand(-0.08,0.08);
+      P.strikeT = t; P.phase = "roll"; P.timer = 0;
+    }
+  } else {
+    poolStep(dt);
+    const moving = P.balls.some(b => !b.in && Math.hypot(b.vx, b.vz) > 0.03);
+    if ((!moving && P.timer > 1.2) || P.timer > 9){
+      for (const b of P.balls){ b.vx = b.vz = 0; }
+      if (cb.in){ cb.in = false; cb.m.visible = true; cb.x = P.cx - 0.6; cb.z = P.cz; cb.m.position.set(cb.x, 0.785, cb.z); }
+      if (P.balls.slice(1).filter(b => !b.in).length <= 2) poolRack();
+      P.turn++; P.phase = "aim"; P.timer = 0;
+    }
+  }
+} const chairs = new Map(); const massageChairs = new Map(); const gameTVs = []; const deskBags = []; const lockers = new Map(); const deskAnims = [];
 const ZZZ_TEX = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"); g.font = "700 40px sans-serif"; g.fillStyle = "#ffffff"; g.strokeStyle = "#3a4a7a"; g.lineWidth = 5; g.strokeText("z", 14, 46); g.fillText("z", 14, 46); g.font = "700 24px sans-serif"; g.strokeText("z", 40, 22); g.fillText("z", 40, 22); return new THREE.CanvasTexture(c); })();
 const CHAIR_PULL = 0.26;
 function chair(f,x,y,color,opts={}){
@@ -1053,7 +1117,7 @@ function restroomSign(x, y, female){
   }, wx(x), 0.82, wz(y) + 0.06);
 }
 
-const tiles = {c:[], m:[], o:[], k:[], a:[], b:[], u:[], v:[], s:[], e:[], n:[], z:[], q:[], y:[], G:[], i:[], E:[], f:[], t:[], l:[], J:[], d:[], "9":[], floor:[]};
+const tiles = {c:[], m:[], o:[], k:[], a:[], b:[], u:[], v:[], s:[], e:[], n:[], z:[], q:[], y:[], G:[], i:[], E:[], f:[], t:[], l:[], J:[], d:[], "9":[], "3":[], floor:[]};
 const boardTiles = {};
 const leds = [];
 const ledColors = ["#38d27a","#38d27a","#38d27a","#f0b429","#4aa3ff"];
@@ -1173,7 +1237,7 @@ for (let f=0; f<NF; f++){
         const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.42,0.8), new THREE.MeshBasicMaterial({map:gt}));
         scr.position.set(gx, 1.05, cz-0.405); curGroup.add(scr);
         gameTVs.push({canvas:gc, tex:gt, ps, seats:[nk(f,x,y+2), nk(f,x+1,y+2)], on:null, t:0});
-        if (ps) textPlane(3.0,0.24,(c,w,h) => { c.fillStyle = "#2b2f36"; c.fillRect(0,0,w,h); c.fillStyle = "#ffd23f"; c.font = "700 " + Math.round(h*0.55) + 'px "IBM Plex Sans KR",sans-serif'; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("게임존 · VR  점심시간 전용 12:00–13:00", w/2, h/2); }, cx + 2.0, 1.62, cz-0.45);
+        if (ps) textPlane(4.2,0.24,(c,w,h) => { c.fillStyle = "#2b2f36"; c.fillRect(0,0,w,h); c.fillStyle = "#ffd23f"; c.font = "700 " + Math.round(h*0.55) + 'px "IBM Plex Sans KR",sans-serif'; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("게임존 · VR · 당구  이용 시간: 출근 전 · 점심 12:00–13:00 · 퇴근 후", w/2, h/2); }, cx + 2.0, 1.62, cz-0.45);
         break;
       }
       case "d":     /* 빈백 */
@@ -1272,7 +1336,21 @@ for (let f=0; f<NF; f++){
         break;
       }
       case "G": chair(f,x,y,"#34383d"); break;
-      case "5": case "6": case "7": break;   /* 랩실 장비는 buildLab()에서 한 번에 그림 */
+      case "5": case "6": case "7": break;
+      case "4": {   /* 당구대 (3x2 칸에 하나) */
+        if (tileAt(f,x-1,y) === "4" || tileAt(f,x,y-1) === "4") break;
+        const pcx = cx + 1.0, pcz = cz + 0.5;
+        box(2.7,0.12,1.6,"#5b3a26",pcx,0.66,pcz); box(2.5,0.03,1.4,"#2f8a4f",pcx,0.735,pcz,{cast:false});
+        box(2.7,0.06,0.1,"#4a2f1f",pcx,0.75,pcz-0.75); box(2.7,0.06,0.1,"#4a2f1f",pcx,0.75,pcz+0.75); box(0.1,0.06,1.6,"#4a2f1f",pcx-1.3,0.75,pcz); box(0.1,0.06,1.6,"#4a2f1f",pcx+1.3,0.75,pcz);
+        for (const [lx,lz] of [[-1.2,-0.65],[1.2,-0.65],[-1.2,0.65],[1.2,0.65]]) box(0.16,0.6,0.16,"#4a2f1f",pcx+lx,0.3,pcz+lz);
+        for (const [lx,lz] of [[-1.24,-0.69],[0,-0.7],[1.24,-0.69],[-1.24,0.69],[0,0.7],[1.24,0.69]]) box(0.09,0.02,0.09,"#111",pcx+lx,0.752,pcz+lz,{cast:false});
+        const cols = ["#f4f4f2","#ffd23f","#3b78d0","#e8475f","#a77dde","#ff7a3d","#2f9e77","#8b1e1e","#111111","#ffd23f","#3b78d0"];
+        const balls = cols.map(c => ({m: box(0.07,0.07,0.07,c,pcx,0.785,pcz,{cast:false}), x:0, z:0, vx:0, vz:0, in:false}));
+        poolTable = {cx:pcx, cz:pcz, balls, pockets:[[-1.24,-0.69],[0,-0.7],[1.24,-0.69],[-1.24,0.69],[0,0.7],[1.24,0.69]].map(([a,b]) => [pcx+a, pcz+b]), phase:"aim", timer:0, turn:0, shooter:null, strikeT:-9, broken:false};
+        poolRack();
+        for (let i=0;i<2;i++){ const cue = box(0.03,0.03,1.3,"#c9a27a",cx+2.6+i*0.07,0.65,cz-0.3+i*0.05); cue.rotation.x = 1.2; }
+        break;
+      }   /* 랩실 장비는 buildLab()에서 한 번에 그림 */
       case "8": {   /* 공기청정기 */
         box(0.42,0.78,0.42,"#f2f2ef",cx,0.39,cz);
         box(0.36,0.04,0.36,"#2b2f36",cx,0.8,cz,{cast:false});
@@ -1345,7 +1423,7 @@ for (const [dx, female] of [[5,false],[9,true]]){
   const pivot = new THREE.Group(); pivot.position.set(wx(dx)-0.45, 0, wz(20)); curGroup.add(pivot);
   box(0.9,0.98,0.05, female ? "#e7c6d6" : "#c6d6e7", 0.45,0.51,0,{parent:pivot});
   box(0.04,0.12,0.04,"#8d9499",0.8,0.55,0.05,{parent:pivot,cast:false}); box(0.04,0.12,0.04,"#8d9499",0.8,0.55,-0.05,{parent:pivot,cast:false});
-  doors.push({kind:"entry", x:wx(dx), z:wz(20), pivot, ang:0, open:1.35});
+  doors.push({kind:"entry", g: female ? "f" : "m", x:wx(dx), z:wz(20), pivot, ang:0, open:1.35});
 }
 function updateDoors(dt){
   for (const d of doors){
@@ -1365,7 +1443,13 @@ function updateDoors(dt){
         }
       }
     } else {
-      for (const p of people){ if (p.tile.f === 0 && Math.hypot(p.root.position.x - d.x, p.root.position.z - d.z) < 1.15){ want = d.open; opener = p; break; } }
+      /* 입구 문은 그 화장실을 쓰는 같은 성별이 들어가거나 나올 때만 열림 (앞을 지나가기만 하면 안 열림) */
+      for (const p of people){
+        if (p.tile.f !== 0 || p.def.g !== d.g || Math.hypot(p.root.position.x - d.x, p.root.position.z - d.z) >= 1.15) continue;
+        const going = restroomOf(p.tile) === d.g || (p.seat && restroomOf(p.seat) === d.g) || (p.path && p.path.length && restroomOf(p.path[p.path.length-1]) === d.g)
+          || p.player;
+        if (going){ want = d.open; opener = p; break; }
+      }
     }
     if (opener && Math.abs(d.ang) < 0.5) opener.reachT = clockT + 0.6;
     d.ang += (want - d.ang)*Math.min(1, dt*8);
@@ -1749,8 +1833,9 @@ function statusOf(p){
   if (p.state === "walk" && p.exiting) return {key:"exit"+p.exitReason, text:p.exitReason === "lunch" ? "점심 먹으러" : "퇴근 중", cls:"st-move"};
   if (p.state === "walk" && p.carryBag) return {key:"arrive", text:"출근 중", cls:"st-move"};
   if (p.state !== "walk" && p.activity === "nap") return {key:"nap"+loungeOf(p.tile), text:(LOUNGE_NAME[loungeOf(p.tile)] || "휴게실") + " 낮잠", cls:"st-break"};
-  if (p.state !== "walk" && p.activity === "game") return {key:"game"+p.tile.x, text:(p.tile.x < 37 ? "PS5" : "Xbox") + " 게임", cls:"st-break"};
+  if (p.state !== "walk" && p.activity === "game") return {key:"game"+p.tile.x, text:(p.tile.x < 37 ? "PS5" : "Xbox") + " 게임 · 30분", cls:"st-break"};
   if (p.state !== "walk" && p.activity === "vr") return {key:"vr", text:"VR 체험", cls:"st-break"};
+  if (p.state !== "walk" && p.activity === "pool") return {key:"pool", text:"당구", cls:"st-break"};
   if (p.state !== "walk" && p.activity === "massage") return {key:"mas", text:"안마의자", cls:"st-break"};
   if (p.def.barista && p.lunching && p.state !== "walk") return {key:"blunch", text:"점심 휴식 · " + (LOUNGE_NAME[loungeOf(p.tile)] || "휴게실"), cls:"st-break"};
   if (p.lunching && p.deskNap && p.state === "sit" && p.activity === "desk") return {key:"dnap", text:"자리에서 낮잠", cls:"st-break"};
@@ -1905,6 +1990,7 @@ class Person {
     this.state = "stand"; this.activity = "idle";
     this.seat = null; this.home = null; this.timer = 0; this.walkPhase = 0;
     this.pad = new THREE.Group(); this.root.add(this.pad); this.pad.visible = false;
+    this.cue = new THREE.Mesh(new THREE.BoxGeometry(0.025,0.025,1.15), mat("#c9a27a")); this.cue.visible = false; this.root.add(this.cue);
     { const pm = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.04,0.09), mat("#25292d")); this.pad.add(pm); }
     this.vrSet = null;
     this.zzz = new THREE.Sprite(new THREE.SpriteMaterial({map:ZZZ_TEX, transparent:true, depthWrite:false})); this.zzz.scale.set(0.32,0.32,1); this.zzz.visible = false; this.root.add(this.zzz);
@@ -2014,7 +2100,7 @@ class Person {
     if (this.activity === "meeting" && !this.lunching) noteMeeting(this);
     if (this.activity === "smoke"){ this.smoke.count++; this.smoke.start = officeMin; this.crave = 0; }
     this.timer = ({desk:rand(35,80), meeting:rand(30,55), lounge:rand(10,20), coffee:rand(4,7), cafe:rand(12,22), idle:rand(1.5,4),
-                   toilet:rand(4,8), wash:rand(1.5,3), report:rand(10,18), reception:rand(20,40), service:rand(20,40), checkin:rand(3,5), as:rand(12,20), wait:rand(3,6), bench:rand(25,50), smoke:rand(7,11), roof:rand(10,18), write:rand(6,10), server:rand(20,35), barista:rand(25,45), nap:rand(40,80), massage:rand(18,30), game:rand(70,130), vr:rand(45,90)})[this.activity];
+                   toilet:rand(4,8), wash:rand(1.5,3), report:rand(10,18), reception:rand(20,40), service:rand(20,40), checkin:rand(3,5), as:rand(12,20), wait:rand(3,6), bench:rand(25,50), smoke:rand(7,11), roof:rand(10,18), write:rand(6,10), server:rand(20,35), barista:rand(25,45), nap:rand(40,80), massage:rand(18,30), game:rand(70,130), vr:rand(45,90), pool:rand(45,90)})[this.activity];
     if (t === "y") this.timer = rand(3, 5);
     this.writeT = rand(1, 2.5);
     if (this.player && this.activity === "write") openBoard(roomOf(this.tile));
@@ -2057,7 +2143,7 @@ class Person {
         if (Math.random() < 0.35 ? (this.goToFree("9") || this.goToFree("d")) : (this.goToFree("d") || this.goToFree("9"))) return;
         this.napDone = false;
       }
-      if (this.activity === "game" || this.activity === "vr"){ this.timer = 5; return; }
+      if (this.activity === "game" || this.activity === "vr" || this.activity === "pool"){ this.timer = 5; return; }
       /* 밥 먹고 나면 낮잠: 여자는 여성 휴게실 소파, 아니면 자기 자리에 엎드려서 */
       if (Ml >= this.sch.napAt && this.sch.napWant && !this.napDone && this.activity !== "coffee"){
         this.napDone = true;
@@ -2111,6 +2197,7 @@ class Person {
         /* 대부분은 자리에서 계속 일함 */
         const r = Math.random(), M = dayMin();
         if (r < 0.06 && this.useLocker(rand(3, 6))) return;
+        if ((M < 9*60 || M >= 18*60) && Math.random() < 0.18){ const ty = pick(["d","d","9","3"]); if (this.goToFree(ty)) return; }
         if (r < 0.08) ok = this.goToFree("k");
         else if (r < 0.12 && M >= 14*60 && M < 17*60) ok = this.goMeeting();
         else if (r < 0.2) ok = this.goToFree("o", s => officeOf(s) === "");
@@ -2160,6 +2247,7 @@ class Person {
       if (cur) ff = (px + W/2) < cur.s.run.x0 ? cur.s.a.f : cur.s.b.f;
       const tx = Math.floor(px + W/2), ty = Math.floor(pz + H/2);
       if (!walkable(ff, tx, ty)) return false;
+      { const rr = restroomOf({f:ff, x:tx, y:ty}); if (rr && this.def.g && rr !== this.def.g) return false; }   /* 남녀 화장실 출입 제한 */
       if (tileAt(ff, tx, ty) === "u"){
         const o = occupied.get(nk(ff, tx, ty));
         if (o && o !== this) return false;
@@ -2265,7 +2353,7 @@ class Person {
     diff = ((diff + Math.PI) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI;
     this.yaw += diff*k; this.root.rotation.y = this.yaw;
 
-    let lL=0, lR=0, aL=0, aR=0, headY=0, headX=0, bob=0, cup=false, cig=false, lying=false, pad=false, vr=false;
+    let lL=0, lR=0, aL=0, aR=0, headY=0, headX=0, bob=0, cup=false, cig=false, lying=false, pad=false, vr=false, poolCue=false;
     const i = this.idx;
     if (this.state === "walk" || this.state === "free"){
       const s = Math.sin(this.walkPhase)*0.65;
@@ -2310,6 +2398,10 @@ class Person {
         else { aL = -1.2 + Math.sin(t*6+i)*0.12; aR = -1.25 + Math.sin(t*7+i+1)*0.15; headY = Math.sin(t*0.4+i)*0.25; }
       }
       else if (this.activity === "server"){ aL = -1.3 + Math.sin(t*11+i)*0.08; aR = -1.3 + Math.sin(t*11+i+1.3)*0.08; headY = Math.sin(t*0.35+i)*0.3; }
+      else if (this.activity === "pool"){
+        if (this.poolShooter){ aL = -1.4; aR = -0.85 + (poolTable && poolTable.phase === "aim" ? Math.sin(t*6)*0.12 : 0.25); headX = 0.4; bob = -0.08; lL = -0.15; lR = 0.2; }
+        else { aR = -0.5; aL = 0.05; headY = Math.sin(t*0.5+i)*0.4; }
+        poolCue = true; }
       else if (this.activity === "vr"){ aL = -1.3 + Math.sin(t*2.3+i)*0.9; aR = -1.6 + Math.sin(t*1.7+i+2)*1.0; headY = Math.sin(t*0.8+i)*0.7; headX = Math.sin(t*0.6+i)*0.2; lL = Math.max(0, Math.sin(t*1.5+i))*0.2; vr = true; }
       else if (this.activity === "locker"){ lL = lR = -0.75; bob = -0.1; aL = -0.35; aR = -0.85 + Math.sin(t*3+i)*0.15; headX = 0.4; headY = Math.sin(t*0.8+i)*0.15; }
       else if (this.talkUntil > t){ aL = 0.04; aR = -0.7 + Math.sin(t*5+i)*0.3; headY = Math.sin(t*1.4+i)*0.15; }
@@ -2335,6 +2427,25 @@ class Person {
     this.cig.visible = cig;
     this.pad.visible = pad; if (pad) this.pad.position.set(-this.lane, 0.5 + this.yOff*0, 0.36);
     if (this.vrSet) this.vrSet.visible = vr;
+    this.cue.visible = poolCue;
+    if (poolCue){
+      this.cue.rotation.order = "YXZ";
+      if (this.poolShooter && poolTable){
+        /* 오른손(몸 옆)에서 시작해 앞으로 쭉 뻗어 흰 공 바로 뒤까지: 몸통을 지나지 않게 오른쪽으로 비켜서 */
+        const cb = poolTable.balls[0], pos = this.root.position;
+        const dist = Math.min(1.45, Math.max(0.55, Math.hypot(cb.x - pos.x, cb.z - pos.z) - 0.06));
+        const P = poolTable, aiming = P.phase === "aim";
+        const back = aiming ? 0.05 + Math.sin(t*6)*0.05 : Math.max(0, 0.08 - (t - P.strikeT)*0.6);
+        const rx = -0.17, ry = 0.66, rz = -0.05 - back, tx = -0.02, ty = 0.8, tz = dist - back;
+        const dx = tx - rx, dy = ty - ry, dz = tz - rz, len = Math.hypot(dx, dy, dz);
+        this.cue.position.set((rx+tx)/2 - this.lane, (ry+ty)/2, (rz+tz)/2);
+        this.cue.rotation.set(-Math.asin(dy/len), Math.atan2(dx, dz), 0);
+        this.cue.scale.z = len/1.15;
+      } else {
+        /* 기다리는 사람: 큐를 몸 옆에 세워 듦 */
+        this.cue.scale.z = 1; this.cue.position.set(-0.26 - this.lane, 0.62, 0.1); this.cue.rotation.set(-1.5, 0, 0);
+      }
+    }
     if (!this.player && this.activity === "write" && this.state === "stand"){
       this.writeT -= dt;
       if (this.writeT <= 0){ this.writeT = rand(2.5, 4.5); boardLine(roomOf(this.tile), pick(BOARD_NOTES), pick(MARKERS)); }
@@ -2400,7 +2511,7 @@ function makeSchedule(p){
   return {
     arrive: early ? 8*60 + 25 + rand(0, 8) : 8*60 + 32 + rand(0, 30),
     lunchStart: 12*60 + rand(0, 1.5), lunchEnd: 12*60 + 56 + rand(0, 3), lunchBack: 12*60 + 47 + rand(0, 5), napAt: 12*60 + 25 + rand(0, 10),
-    napWant: p.def.g === "f" ? Math.random() < 0.55 : Math.random() < 0.35, playWant: Math.random() < (p.def.g === "m" ? 0.4 : 0.22), lunchMode, lunchRoom, lunchDone:false,
+    napWant: p.def.g === "f" ? Math.random() < 0.55 : Math.random() < 0.35, playWant: false, lunchMode, lunchRoom, lunchDone:false,
     leave: ot ? 20*60 + 30 + rand(0, 100) : 18*60 + rand(0, 10), overtime:ot, left:false,
     coffeeAM: Math.random() < 0.6 ? 10*60 + rand(0, 25) : -1, coffeePM: Math.random() < 0.6 ? 15*60 + rand(0, 25) : -1,
     meetDone:false
@@ -2517,9 +2628,9 @@ function drawGame(tv, t){
   const c = tv.canvas.getContext("2d"), w = tv.canvas.width, h = tv.canvas.height;
   if (!tv.on){
     c.fillStyle = "#0d0f12"; c.fillRect(0,0,w,h);
-    const lunch = dayMin() >= 12*60 && dayMin() < 13*60;
+    const lunch = gameOpen(dayMin());
     c.fillStyle = lunch ? "#5d6670" : "#3a4048"; c.font = '600 15px "IBM Plex Sans KR",sans-serif'; c.textAlign = "center"; c.textBaseline = "middle";
-    c.fillText(lunch ? "컨트롤러를 잡으세요" : "점심시간(12:00~13:00)에만 켜져요", w/2, h/2);
+    c.fillText(lunch ? "컨트롤러를 잡으세요" : "출근 전·점심·퇴근 후에 켜져요", w/2, h/2);
   } else if (tv.ps){   /* 레이싱 */
     const sky = c.createLinearGradient(0,0,0,h*0.5); sky.addColorStop(0,"#3a6fd8"); sky.addColorStop(1,"#9cc8f0"); c.fillStyle = sky; c.fillRect(0,0,w,h*0.5);
     c.fillStyle = "#3f8a4f"; c.fillRect(0,h*0.5,w,h*0.5);
@@ -2537,17 +2648,57 @@ function drawGame(tv, t){
   }
   tv.tex.needsUpdate = true;
 }
+/* 게임존·VR·당구 이용 시간: 출근 전(~09:00), 점심(12:00~13:00), 퇴근 후(18:00~). 안마의자는 언제나 */
+const gameOpen = M => M < 9*60 || (M >= 12*60 && M < 13*60) || M >= 18*60;
+/* 게임존 순번제: 한 사람당 30분, 점심 12:00~12:30 / 12:30~13:00 두 타임.
+   PS5·Xbox 빈백 4 + VR 2 + 당구 2 = 한 타임 8명. 순번표를 돌려 모두 한 번씩 하고 나면 처음부터 다시 */
+const PLAY_SLOTS = [[12*60 + 2, 12*60 + 30], [12*60 + 30, 13*60]];
+let playQueue = null, playPtr = 0; const playRounds = new Set();
+function initPlayQueue(){
+  playQueue = scheduled.filter(p => !p.def.barista && !p.def.post).map(p => p.def.name);
+  try { const v = JSON.parse(localStorage.getItem("blockoffice.playQueue") || "null"); if (v && Array.isArray(v.q) && v.q.length === playQueue.length && v.q.every(n => playQueue.includes(n))){ playQueue = v.q; playPtr = v.ptr % playQueue.length; } else { playQueue.sort(() => Math.random() - 0.5); } } catch(e){ playQueue.sort(() => Math.random() - 0.5); }
+}
+function savePlayQueue(){ try { localStorage.setItem("blockoffice.playQueue", JSON.stringify({q:playQueue, ptr:playPtr})); } catch(e){} }
+function playRoundTick(){
+  if (!playQueue) initPlayQueue();
+  const M = dayMin(), day = Math.floor(officeMin / 1440);
+  PLAY_SLOTS.forEach(([a, b], ri) => {
+    /* 타임 종료: 30분 다 쓴 사람은 일어나서 자리로 */
+    for (const p of scheduled){ if (p.playUntil && M >= p.playUntil && (p.activity === "game" || p.activity === "vr" || p.activity === "pool") && p.state !== "walk"){ p.playUntil = 0; p.napDone = true; if (!p.goTo(p.home)) p.timer = 1; } }
+    const key = day + ":" + ri;
+    if (M < a || M >= a + 3 || playRounds.has(key)) return;
+    playRounds.add(key);
+    const seats = ["d","9","3"].flatMap(ty => tiles[ty]).filter(s => !(s.x === 37 && s.y === 21));
+    let freeSeats = seats.filter(s => !occupied.has(nk(s.f,s.x,s.y)));
+    const picked = [];
+    for (let tries = 0; tries < playQueue.length && picked.length < freeSeats.length; tries++){
+      const name = playQueue[playPtr]; playPtr = (playPtr + 1) % playQueue.length;
+      const p = scheduled.find(q => q.def.name === name);
+      if (!p || p.present === false || p.exiting || p.inExec || p.inInterview || p.awayLunch) continue;
+      picked.push(p);
+    }
+    savePlayQueue();
+    picked.forEach((p, i) => {
+      const s = freeSeats[i]; if (!s) return;
+      p.endActivity(); p.lunching = true; p.playDone = true; p.napDone = true; p.playUntil = b;
+      if (!p.goTo(s)) p.playUntil = 0;
+    });
+    if (picked.length) toast("게임존 " + (ri + 1) + "타임 (30분): " + picked.map(p => p.def.name).join(", "));
+  });
+}
 function updateGameZone(t, dt){
-  const M = dayMin(), lunch = M >= 12*60 && M < 13*60;
+  playRoundTick();
+  const M = dayMin(), lunch = gameOpen(M);
   for (const tv of gameTVs){
     const on = lunch && tv.seats.some(k => { const o = occupied.get(k); return o && o.state === "sit" && o.activity === "game"; });
     tv.t += dt;
     if (on !== tv.on || (on && tv.t > 0.1) || (!on && tv.t > 5)){ tv.on = on; tv.t = 0; drawGame(tv, t); }
   }
+  updatePool(t, dt);
   if (!lunch){
     for (const p of people){
-      if ((p.activity === "game" || p.activity === "vr") && p.state !== "walk"){
-        if (p.player){ p.endActivity(); p.releaseSeat(); p.state = "stand"; p.activity = "idle"; p.yOff = 0; toast("점심시간이 끝나서 게임존을 닫았어요"); }
+      if ((p.activity === "game" || p.activity === "vr" || p.activity === "pool") && p.state !== "walk"){
+        if (p.player){ p.endActivity(); p.releaseSeat(); p.state = "stand"; p.activity = "idle"; p.yOff = 0; toast("게임존 이용 시간이 끝났어요 (업무 시간)"); }
         else { p.lunching = false; if (!p.goTo(p.home || EXIT(p.idx))) p.timer = 1; }
       }
     }
@@ -2807,6 +2958,15 @@ function updateExec(t, dt){
   }
 }
 player.place({f:0, x:15, y:33}); player.arrive(); player.yaw = player.yawTarget = Math.PI;
+/* 자동 시계: 실제 09:00~18:01에는 실시간으로, 18:02~다음 날 08:59에는 가짜 시각(랜덤 상황)으로 흐름.
+   장면 버튼을 누르면 수동 모드, '실시간' 버튼을 누르면 다시 자동 */
+const realDayMin = () => ((realMinutes() % 1440) + 1440) % 1440;
+const workHours = () => { const r = realDayMin(); return r >= 9*60 && r < 18*60 + 2; };
+let autoClock = true;
+function randomSimMinute(){ return Math.floor(realMinutes() / 1440) * 1440 + 8*60 + 30 + Math.floor(Math.random() * 12*60); }
+if (workHours()){ clockMode = "real"; officeMin = realMinutes(); }
+else { clockMode = "sim"; officeMin = randomSimMinute(); }
+weather = Math.random() < 0.7 ? "clear" : Math.random() < 0.66 ? "rain" : "snow";
 applyTimeState();
 /* 출근하면 가방은 자기 의자 오른쪽 바닥(사물함 옆)에 내려놓음 */
 for (const db of deskBags){
@@ -3073,7 +3233,7 @@ function blockedBy(t){
   const rr = restroomOf(t);
   if (exec.active && roomOf(t) === "A" && tt !== ".") return "대회의실은 임원 회의 중이에요";
   if (loungeOf(t) === "women" && player.def.g !== "f") return "여성 전용 휴게실이에요";
-  if ((tt === "d" || tt === "9") && !(dayMin() >= 12*60 && dayMin() < 13*60)) return "게임존·VR은 점심시간(12:00~13:00)에만 쓸 수 있어요";
+  if ((tt === "d" || tt === "9" || tt === "3") && !gameOpen(dayMin())) return "게임존·VR·당구는 출근 전, 점심(12:00~13:00), 퇴근 후에만 쓸 수 있어요";
   if (rr && rr !== player.def.g && (tt === "u" || tt === "v" || tt === "y" || tt === ".")) return rr === "f" ? "여자 화장실이에요" : "남자 화장실이에요";
   const k = nk(t.f,t.x,t.y), owner = seatOwner.get(k), occ = occupied.get(k);
   if (owner && owner !== player) return owner.def.name + " 님의 고정석이에요";
@@ -3639,10 +3799,12 @@ function refreshTimebar(){
   tphase.textContent = (clockMode === "real" ? "실제 · " : "가짜 · ") + phaseText(M);
   treal.hidden = clockMode === "real";
   const r = ((realMinutes() % 1440) + 1440) % 1440; trealv.textContent = clockText(r);
-  btnReal.setAttribute("aria-pressed", String(clockMode === "real"));
+  btnReal.setAttribute("aria-pressed", String(autoClock));
   document.querySelectorAll("[data-sp]").forEach(o => o.setAttribute("aria-disabled", String(clockMode === "real")));
 }
 btnReal.addEventListener("click", () => {
+  autoClock = true;
+  if (!workHours()){ clockMode = "sim"; document.querySelectorAll("[data-jump]").forEach(o => o.setAttribute("aria-pressed","false")); jumpTo((((randomSimMinute()) % 1440) + 1440) % 1440); toast("지금은 업무 시간 밖이라 가짜 시각으로 진행해요 (실시간은 09:00~18:01)"); refreshTimebar(); refreshRoster(); return; }
   clockMode = "real"; officeMin = realMinutes();
   document.querySelectorAll("[data-jump]").forEach(o => o.setAttribute("aria-pressed","false"));
   jumpTo(dayMin());
@@ -3652,7 +3814,7 @@ btnReal.addEventListener("click", () => {
 const SCENES = {arrive:[8*60 + 35, "출근 시간"], focus:[9*60, "업무 집중 시간"], lunch:[11*60 + 57, "곧 점심시간"], meet:[13*60, "회의 시간"], leave:[17*60 + 57, "곧 퇴근 시간"]};
 document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => {
   const [min, label] = SCENES[b.dataset.jump];
-  clockMode = "sim";
+  clockMode = "sim"; autoClock = false;
   document.querySelectorAll("[data-jump]").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
   jumpTo(min);
   toast("가짜 시각 " + clockText(min) + " · " + label);
@@ -3684,6 +3846,11 @@ const clock = new THREE.Clock();
 let rosterAcc = 0, ledAcc = 0;
 function frame(){
   const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime;
+  if (autoClock){
+    const w = workHours();
+    if (w && clockMode !== "real"){ clockMode = "real"; officeMin = realMinutes(); jumpTo(dayMin()); toast("업무 시간(09:00~18:01) · 실제 시각으로 전환"); refreshTimebar(); }
+    else if (!w && clockMode === "real"){ clockMode = "sim"; const m = randomSimMinute(); jumpTo(((m % 1440) + 1440) % 1440); toast("업무 시간 밖 · 가짜 시각 " + clockText(dayMin()) + "부터 진행"); refreshTimebar(); }
+  }
   if (clockMode === "real") officeMin = realMinutes(); else officeMin += dt * timeScale;
   scheduleTick(); tickWork();
   readInput();
@@ -3726,6 +3893,8 @@ function frame(){
   requestAnimationFrame(frame);
 }
 showFloors("all");
+document.querySelectorAll("[data-wx]").forEach(o => o.setAttribute("aria-pressed", String(o.dataset.wx === weather)));
+setTimeout(() => toast(clockMode === "real" ? "업무 시간 · 실제 시각 " + clockText(dayMin()) + "으로 진행 · 옥상 " + ({clear:"맑음", rain:"비", snow:"눈"})[weather] : "업무 시간 밖 · 가짜 시각 " + clockText(dayMin()) + "부터 진행 · 옥상 " + ({clear:"맑음", rain:"비", snow:"눈"})[weather]), 600);
 view.r = view.rGoal;
 updateCamera(1);
 camPos.copy(cam.position);
