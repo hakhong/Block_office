@@ -170,7 +170,7 @@ table.wc td.skip{color:#d9534f;font-weight:600}
 .tphase{font-size:.74rem;color:var(--muted);padding-right:6px;white-space:nowrap}
 .treal{font-size:.72rem;color:var(--muted);white-space:nowrap;padding-right:4px}
 .treal b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
-.tb.sp[aria-disabled="true"]{opacity:.4}
+.tb.sp[aria-disabled="true"],#btnReal[aria-disabled="true"]{opacity:.4;cursor:not-allowed}
 .tb{height:32px;padding:0 9px;border:0;border-radius:6px;background:transparent;color:var(--ink);font:500 .8rem var(--f-body);cursor:pointer;white-space:nowrap}
 .tb:hover{background:var(--hover)}
 .tb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -276,9 +276,9 @@ table.wc td.skip{color:#d9534f;font-weight:600}
     <button class="tb wx" type="button" data-wx="rain" aria-pressed="false" title="옥상 날씨">비</button>
     <button class="tb wx" type="button" data-wx="snow" aria-pressed="false" title="옥상 날씨">눈</button>
     <span class="sep" aria-hidden="true"></span>
-    <button class="tb sp" type="button" data-sp="1" aria-pressed="true" title="실제 1초 = 1분">×1</button>
-    <button class="tb sp" type="button" data-sp="3" aria-pressed="false">×3</button>
-    <button class="tb sp" type="button" data-sp="10" aria-pressed="false">×10</button>
+    <button class="tb sp" type="button" data-sp="1" aria-pressed="true" title="가짜 시각 속도: 실제 1초에 1분">1초=1분</button>
+    <button class="tb sp" type="button" data-sp="3" aria-pressed="false" title="가짜 시각 속도: 실제 1초에 3분">1초=3분</button>
+    <button class="tb sp" type="button" data-sp="10" aria-pressed="false" title="가짜 시각 속도: 실제 1초에 10분">1초=10분</button>
   </div>
 
   <div class="hud pov" id="pov" hidden><span><b id="povName"></b> 님 시점</span><button id="povBack" type="button">내 시점으로</button></div>
@@ -1827,6 +1827,7 @@ function realMinutes(){ const d = new Date(); return Math.floor((d - d.getTimezo
 officeMin = realMinutes();
 const dayMin = () => ((officeMin % 1440) + 1440) % 1440;
 const clockText = m => { const h = Math.floor(m/60)%24, mm = Math.floor(m%60); return String(h).padStart(2,"0") + ":" + String(mm).padStart(2,"0"); };
+const clockTextS = m => { const tot = Math.floor(((m % 1440) + 1440) % 1440 * 60), h = Math.floor(tot/3600), mm = Math.floor(tot/60)%60, ss = tot%60; return [h,mm,ss].map(v => String(v).padStart(2,"0")).join(":"); };
 
 function statusOf(p){
   if (p.present === false) return {key:"away"+(p.awayLunch?1:0)+(p.sch && p.sch.left?1:0), text:p.awayLunch ? "점심 외출" : (p.sch && p.sch.left ? "퇴근" : "출근 전"), cls:"st-move", away:true};
@@ -2960,8 +2961,10 @@ function updateExec(t, dt){
 player.place({f:0, x:15, y:33}); player.arrive(); player.yaw = player.yawTarget = Math.PI;
 /* 자동 시계: 실제 09:00~18:01에는 실시간으로, 18:02~다음 날 08:59에는 가짜 시각(랜덤 상황)으로 흐름.
    장면 버튼을 누르면 수동 모드, '실시간' 버튼을 누르면 다시 자동 */
+/* 가짜 시각에서 출근(08:25~09:05)·퇴근(17:55~18:20) 시간대는 1초=1초로 천천히 → 사람들이 제때 들어오고 나감 */
+const commuteWindow = M => (M >= 8*60 + 25 && M < 9*60 + 5) || (M >= 17*60 + 55 && M < 18*60 + 20);
 const realDayMin = () => ((realMinutes() % 1440) + 1440) % 1440;
-const workHours = () => { const r = realDayMin(); return r >= 9*60 && r < 18*60 + 2; };
+const workHours = () => { const r = realDayMin(); return r >= 9*60 && r < 18*60; };
 let autoClock = true;
 function randomSimMinute(){ return Math.floor(realMinutes() / 1440) * 1440 + 8*60 + 30 + Math.floor(Math.random() * 12*60); }
 if (workHours()){ clockMode = "real"; officeMin = realMinutes(); }
@@ -3795,16 +3798,18 @@ function phaseText(M){
 }
 function refreshTimebar(){
   const M = dayMin();
-  tclock.textContent = clockText(M);
-  tphase.textContent = (clockMode === "real" ? "실제 · " : "가짜 · ") + phaseText(M);
+  tclock.textContent = clockTextS(M);
+  tphase.textContent = (clockMode === "real" ? "실제 · " : commuteWindow(M) ? "가짜 · 실제 속도 · " : "가짜 · ") + phaseText(M);
   treal.hidden = clockMode === "real";
-  const r = ((realMinutes() % 1440) + 1440) % 1440; trealv.textContent = clockText(r);
-  btnReal.setAttribute("aria-pressed", String(autoClock));
+  const r = ((realMinutes() % 1440) + 1440) % 1440; trealv.textContent = clockTextS(r);
+  btnReal.setAttribute("aria-pressed", String(clockMode === "real"));
+  btnReal.setAttribute("aria-disabled", String(!workHours()));
+  btnReal.title = workHours() ? "실제 시각으로 진행 (09:00~18:00)" : "지금은 업무 시간 밖이라 실시간을 쓸 수 없어요 (09:00~18:00에만)";
   document.querySelectorAll("[data-sp]").forEach(o => o.setAttribute("aria-disabled", String(clockMode === "real")));
 }
 btnReal.addEventListener("click", () => {
+  if (!workHours()){ toast("실시간은 실제 시각 09:00~18:00에만 쓸 수 있어요 · 지금은 가짜 시각으로 진행 중"); return; }
   autoClock = true;
-  if (!workHours()){ clockMode = "sim"; document.querySelectorAll("[data-jump]").forEach(o => o.setAttribute("aria-pressed","false")); jumpTo((((randomSimMinute()) % 1440) + 1440) % 1440); toast("지금은 업무 시간 밖이라 가짜 시각으로 진행해요 (실시간은 09:00~18:01)"); refreshTimebar(); refreshRoster(); return; }
   clockMode = "real"; officeMin = realMinutes();
   document.querySelectorAll("[data-jump]").forEach(o => o.setAttribute("aria-pressed","false"));
   jumpTo(dayMin());
@@ -3814,7 +3819,7 @@ btnReal.addEventListener("click", () => {
 const SCENES = {arrive:[8*60 + 35, "출근 시간"], focus:[9*60, "업무 집중 시간"], lunch:[11*60 + 57, "곧 점심시간"], meet:[13*60, "회의 시간"], leave:[17*60 + 57, "곧 퇴근 시간"]};
 document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => {
   const [min, label] = SCENES[b.dataset.jump];
-  clockMode = "sim"; autoClock = false;
+  clockMode = "sim"; autoClock = !workHours();   /* 업무 시간 밖에서는 장면을 골라도 09:00이 되면 자동으로 실시간 전환 */
   document.querySelectorAll("[data-jump]").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
   jumpTo(min);
   toast("가짜 시각 " + clockText(min) + " · " + label);
@@ -3836,7 +3841,7 @@ document.querySelectorAll("[data-wx]").forEach(b => b.addEventListener("click", 
   toast(weather === "rain" ? "옥상에 비가 내려요" : weather === "snow" ? "옥상에 눈이 내려요" : "옥상 날씨 맑음");
 }));
 document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", () => {
-  if (clockMode === "real"){ toast("배속은 장면 버튼(가짜 시각)에서만 바뀌어요"); return; }
+  if (clockMode === "real"){ toast("업무 시간(09:00~18:00)에는 실제 시각 그대로 흘러요 · 속도는 가짜 시각에서만"); return; }
   timeScale = Number(b.dataset.sp);
   document.querySelectorAll("[data-sp]").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
 }));
@@ -3848,10 +3853,11 @@ function frame(){
   const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime;
   if (autoClock){
     const w = workHours();
-    if (w && clockMode !== "real"){ clockMode = "real"; officeMin = realMinutes(); jumpTo(dayMin()); toast("업무 시간(09:00~18:01) · 실제 시각으로 전환"); refreshTimebar(); }
+    if (w && clockMode !== "real"){ clockMode = "real"; officeMin = realMinutes(); jumpTo(dayMin()); toast("업무 시간(09:00~18:00) · 실제 시각으로 전환"); refreshTimebar(); }
     else if (!w && clockMode === "real"){ clockMode = "sim"; const m = randomSimMinute(); jumpTo(((m % 1440) + 1440) % 1440); toast("업무 시간 밖 · 가짜 시각 " + clockText(dayMin()) + "부터 진행"); refreshTimebar(); }
   }
-  if (clockMode === "real") officeMin = realMinutes(); else officeMin += dt * timeScale;
+  if (clockMode === "real") officeMin = realMinutes();
+  else officeMin += dt * (commuteWindow(dayMin()) ? 1/60 : timeScale);   /* 가짜 시각이라도 출근·퇴근 시간대는 실제 속도 */
   scheduleTick(); tickWork();
   readInput();
   if (camMode !== "overview" && viewTarget.tile.f !== mode) showFloors(viewTarget.tile.f);
