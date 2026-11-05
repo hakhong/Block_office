@@ -295,18 +295,10 @@ table.wc td.skip{color:#d9534f;font-weight:600}
     <div class="exec" id="exec" hidden><span id="execText"></span><button type="button" id="execGo">보기</button></div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tabNow" aria-selected="true" aria-controls="people" type="button">현황</button>
-      <button class="tab" role="tab" id="tabWc" aria-selected="false" aria-controls="wcWrap" type="button">화장실</button>
       <button class="tab" role="tab" id="tabRoof" aria-selected="false" aria-controls="roofWrap" type="button">옥상</button>
       <button class="tab" role="tab" id="tabWork" aria-selected="false" aria-controls="workWrap" type="button">업무·회의</button>
     </div>
     <ul id="people" role="tabpanel" aria-labelledby="tabNow"></ul>
-    <div class="wc-wrap" id="wcWrap" role="tabpanel" aria-labelledby="tabWc" hidden>
-      <p class="wc-sum" id="wcSum"></p>
-      <table class="wc">
-        <thead><tr><th>#</th><th>이름</th><th>화장실</th><th>체류</th><th>손씻기</th><th>흡연</th></tr></thead>
-        <tbody id="wcBody"></tbody>
-      </table>
-    </div>
     <div class="wc-wrap" id="roofWrap" role="tabpanel" aria-labelledby="tabRoof" hidden>
       <p class="wc-sum" id="roofSum"></p>
       <table class="wc">
@@ -3737,7 +3729,7 @@ document.getElementById("execGo").addEventListener("click", () => {
   if (camMode === "overview"){ if (mode !== "all" && mode !== 0) setMode(0); setFollowTo(ceo); view.rGoal = 12; }
   else setViewTarget(ceo);
 });
-const wcBody = document.getElementById("wcBody"), wcSum = document.getElementById("wcSum"), wcWrap = document.getElementById("wcWrap");
+
 function refreshRoster(){
   clockEl.textContent = clockText(dayMin());
   const inside = people.filter(p => p.present !== false);
@@ -3767,7 +3759,6 @@ function refreshRoster(){
     '<span>옥상 <b>' + c.roof + '</b>명</span>' +
     '<span><span class="dot st-visit"></span>방문객 <b>' + c.vis + '</b>명</span>' +
     (c.ot ? '<span><span class="dot st-meet"></span>야근 <b>' + c.ot + '</b>명</span>' : '');
-  if (!wcWrap.hidden) refreshCounter();
   if (!roofWrap.hidden) refreshRoofCounter();
   if (!workWrap.hidden) refreshWorkCounter();
   execEl.hidden = !exec.active;
@@ -3776,20 +3767,6 @@ function refreshRoster(){
     const n = crew.filter(p => p.state === "sit" && roomOf(p.tile) === "A").length;
     execText.innerHTML = exec.phase === "gather" ? "<b>대회의실</b> 팀장 소집 중 · " + n + "/" + crew.length + "명 착석" : "<b>대회의실</b> 임원 회의 · 빔 영상 " + String(Math.floor(Math.min(proj.t, VIDEO_LEN))).padStart(2,"0") + "/" + VIDEO_LEN + "초";
   }
-}
-function refreshCounter(){
-  const rows = people.filter(p => !p.def.barista).map(p => ({p, n:p.wc.count, m:p.liveMin(p.wc), s:p.smoke.count, w:p.washCount, now:p.activity === "toilet" && p.state !== "walk"}));
-  rows.sort((a,b) => b.n - a.n || b.m - a.m);
-  const total = rows.reduce((a,r) => a + r.n, 0), mins = rows.reduce((a,r) => a + r.m, 0), smokes = rows.reduce((a,r) => a + r.s, 0);
-  const maxN = Math.max(1, ...rows.map(r => r.n));
-  const since = clockText(8*60 + 30) + "부터 " + clockText(dayMin()) + "까지";
-  const washes = rows.reduce((a,r) => a + Math.min(r.w, r.n), 0);
-  wcSum.innerHTML = since + " · 화장실 <b>" + total + "</b>회, 평균 <b>" + (total ? (mins/total).toFixed(1) : "0") + "</b>분 · 손씻기 <b>" + washes + "/" + total + "</b> · 흡연 <b>" + smokes + "</b>회";
-  wcBody.innerHTML = rows.map((r, i) =>
-    '<tr class="' + (r.now ? "now" : "") + '"><td>' + (i+1) + '</td><td>' + (r.p.player ? "나" : r.p.def.name) + '<span class="g">' + (r.p.def.g === "f" ? "여" : "남") + (r.p.def.visitor ? "·방문" : "") + '</span></td>' +
-    '<td class="num"><span class="minibar" style="width:' + Math.round(26*r.n/maxN) + 'px"></span>' + r.n + '회</td>' +
-    '<td class="num">' + Math.round(r.m) + '분</td><td class="num' + (r.w < r.n && !r.now ? ' skip' : '') + '">' + (r.n ? Math.min(r.w, r.n) + "/" + r.n : "–") + '</td><td class="num">' + (r.p.def.smoker || r.s ? r.s + "회" : "–") + '</td></tr>'
-  ).join("");
 }
 const tabWork = document.getElementById("tabWork"), workWrap = document.getElementById("workWrap"), workSum = document.getElementById("workSum"), workBody = document.getElementById("workBody"), meetLog = document.getElementById("meetLog"), meetSum = document.getElementById("meetSum");
 const roofWrap = document.getElementById("roofWrap"), roofSum = document.getElementById("roofSum"), roofBody = document.getElementById("roofBody");
@@ -3826,15 +3803,13 @@ function refreshWorkCounter(){
 }
 refreshRoster();
 
-const tabNow = document.getElementById("tabNow"), tabWc = document.getElementById("tabWc"), tabRoof = document.getElementById("tabRoof");
+const tabNow = document.getElementById("tabNow"), tabRoof = document.getElementById("tabRoof");
 function showTab(which){
-  tabNow.setAttribute("aria-selected", String(which === "now")); tabWc.setAttribute("aria-selected", String(which === "wc")); tabRoof.setAttribute("aria-selected", String(which === "roof")); tabWork.setAttribute("aria-selected", String(which === "work"));
-  list.hidden = which !== "now"; wcWrap.hidden = which !== "wc"; roofWrap.hidden = which !== "roof"; workWrap.hidden = which !== "work";
-  if (which === "wc") refreshCounter();
+  tabNow.setAttribute("aria-selected", String(which === "now")); tabRoof.setAttribute("aria-selected", String(which === "roof")); tabWork.setAttribute("aria-selected", String(which === "work"));
+  list.hidden = which !== "now"; roofWrap.hidden = which !== "roof"; workWrap.hidden = which !== "work";
   if (which === "roof") refreshRoofCounter();
 }
 tabNow.addEventListener("click", () => showTab("now"));
-tabWc.addEventListener("click", () => showTab("wc"));
 tabRoof.addEventListener("click", () => showTab("roof"));
 tabWork.addEventListener("click", () => showTab("work"));
 
