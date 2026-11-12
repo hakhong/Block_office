@@ -551,10 +551,16 @@ const mats = new Map();
 function mat(c){ if (!mats.has(c)) mats.set(c, new THREE.MeshLambertMaterial({color:c})); return mats.get(c); }
 const groups = FLOORS.map(fl => { const g = new THREE.Group(); g.position.y = fl.elev; scene.add(g); return g; });
 let curGroup = groups[0];
+/* 정적 배칭: STATIC 구간에서 만든 box()는 빌드가 끝난 뒤 층별로 하나의 메시로 합쳐진다(드로우콜 수천 → 수십).
+   런타임에 움직이거나 색이 바뀌는 메시는 {keep:true}를 주거나, dyn()/stat() 래퍼 밖에서 만든다. */
+let STATIC = false;
+const dyn  = fn => function(...a){ const s = STATIC; STATIC = false; try { return fn.apply(this, a); } finally { STATIC = s; } };
+const stat = fn => function(...a){ const s = STATIC; STATIC = true;  try { return fn.apply(this, a); } finally { STATIC = s; } };
 function box(w,h,d,color,x,y,z,opts={}){
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), typeof color === "string" ? mat(color) : color);
   m.position.set(x,y,z);
   m.castShadow = opts.cast !== false; m.receiveShadow = true;
+  if (STATIC && !opts.keep && typeof color === "string") m.userData.stat = true;
   (opts.parent || curGroup).add(m);
   return m;
 }
@@ -712,7 +718,7 @@ const ZZZ_TEX = (() => { const c = document.createElement("canvas"); c.width = c
 const CHAIR_PULL = 0.26;
 function chair(f,x,y,color,opts={}){
   const fc = facingAt(f,x,y) || {dx:0,dz:1};
-  const g = new THREE.Group(); g.position.set(wx(x), 0, wz(y)); curGroup.add(g);
+  const g = new THREE.Group(); g.position.set(wx(x), 0, wz(y)); g.userData.merge = true; curGroup.add(g);
   { const dxT = x + fc.dx, dyT = y + fc.dz;
     if (tileAt(f,dxT,dyT) === "D" && CUBICLE_OFFICES.has(officeOf({f,x:dxT,y:dyT})) && deskExt(f,dxT,dyT,{dx:-fc.dx, dz:-fc.dz})) g.position.x += 0.5; }
   box(0.34,0.03,0.34,"#2b2f33",0,0.015,0,{cast:false,parent:g});
@@ -737,9 +743,9 @@ function isExtTile(f,x,y){
 }
 /* 개인 쓰레기통: 작은 원통형 + 안에 쌓이는 종이 쓰레기(미화 여사님이 비움) */
 function trashBin(parent, lx, ly, lz, wxp, wzp, f, col){
-  const g = new THREE.Group(); g.position.set(lx, ly, lz); parent.add(g);
-  const can = new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.06,0.2,12), mat(col || "#9aa3a8")); can.position.y = 0.1; can.castShadow = true; g.add(can);
-  const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.005,12), mat("#2b2f33")); inner.position.y = 0.198; g.add(inner);
+  const g = new THREE.Group(); g.position.set(lx, ly, lz); g.userData.stat = true; parent.add(g);
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.06,0.2,12), mat(col || "#9aa3a8")); can.position.y = 0.1; can.castShadow = true; can.userData.stat = true; g.add(can);
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.005,12), mat("#2b2f33")); inner.position.y = 0.198; inner.userData.stat = true; g.add(inner);
   const fill = new THREE.Group(); fill.position.y = 0.2; g.add(fill);
   for (let k=0;k<3;k++){ const b = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.045,0.05), mat(k === 1 ? "#e8e2d6" : "#f4f1ea")); b.position.set((k-1)*0.03, 0.015 + (k%2)*0.02, (k%2 ? 0.02 : -0.02)); b.rotation.y = k; fill.add(b); }
   fill.visible = false;
@@ -756,7 +762,7 @@ function desk(f,x,y){
     }
     return;
   }
-  const g = new THREE.Group(); g.position.set(cx,0,cz); const th = Math.atan2(d.dx, d.dz); g.rotation.y = th; curGroup.add(g);
+  const g = new THREE.Group(); g.position.set(cx,0,cz); const th = Math.atan2(d.dx, d.dz); g.rotation.y = th; g.userData.stat = true; curGroup.add(g);
   const B = (w,h,dd,c,lx,ly,lz,o={}) => box(w,h,dd,c,lx,ly,lz,{...o, parent:o.parent || g});
   const seed = x*7 + y*3;
   const off = officeOf({f,x,y});
@@ -764,7 +770,7 @@ function desk(f,x,y){
   const L = ext ? Math.round(Math.cos(th)) * ext : 0;          // 확장 칸이 로컬 x 어느 쪽인지 (+1 오른쪽 / -1 왼쪽)
   const xmin = L < 0 ? -1.5 : -0.5, xmax = L > 0 ? 1.5 : 0.5, wd = xmax - xmin, xc = (xmin + xmax)/2;
   const monitor = (lx, lz, ry, w, scrIdx) => {
-    const m = new THREE.Group(); m.position.set(lx, 0, lz); m.rotation.y = ry; g.add(m);
+    const m = new THREE.Group(); m.position.set(lx, 0, lz); m.rotation.y = ry; m.userData.stat = true; g.add(m);
     B(0.14,0.02,0.11,"#2a2e33",0,0.415,0,{parent:m});
     B(0.04,0.14,0.04,"#2a2e33",0,0.49,-0.02,{parent:m});
     B(w+0.02,w*0.62,0.03,"#25292d",0,0.49+w*0.4,0,{parent:m});
@@ -815,7 +821,7 @@ function desk(f,x,y){
   { const bx = xmax - 0.18, bz = 0.3, c = Math.cos(th), sn = Math.sin(th); trashBin(g, bx, 0, bz, cx + bx*c + bz*sn, cz - bx*sn + bz*c, f); }
   deskBags.push({g, side:ls, wide:!!L, bagX: L ? xmin + 0.66 : 0.36, bagZ: L ? 0.05 : 0.66, deskX: xmin + 0.62, deskZ: -0.02, xmin, xmax, xc, cubicle:true, chairKey: nk(f, x + d.dx, y + d.dz)});
   /* 듀얼 모니터·키보드는 책상 정중앙 (의자도 가운데로 당겨 앉음) */
-  const mid = new THREE.Group(); mid.position.x = xc; g.add(mid);
+  const mid = new THREE.Group(); mid.position.x = xc; mid.userData.stat = true; g.add(mid);
   const Bm = (w,h,dd,c,lx,ly,lz,o={}) => B(w,h,dd,c,lx,ly,lz,{...o, parent:o.parent || mid});
   { const m1 = new THREE.Group(); m1.position.set(xc,0,0); g.add(m1); }
   monitor(xc-0.16,-0.25,0.24,0.3,seed); monitor(xc+0.16,-0.25,-0.24,0.3,seed+1);
@@ -1038,7 +1044,7 @@ function updateLab(t, dt){
 const POTS = ["#a8603c","#efeae0","#8d9189","#2f4a6b","#c9a27a","#b5483b"];
 const FLOWERS = ["#e8475f","#ff8fb1","#ffd23f","#a77dde","#ffffff","#ff7a3d","#5aa0ff"];
 function plantModel(cx, cz, kind, seed, scale){
-  const g = new THREE.Group(); g.position.set(cx, 0, cz); g.rotation.y = (seed % 4) * Math.PI/2 + (seed % 3)*0.2; g.scale.setScalar(scale); curGroup.add(g);
+  const g = new THREE.Group(); g.position.set(cx, 0, cz); g.rotation.y = (seed % 4) * Math.PI/2 + (seed % 3)*0.2; g.scale.setScalar(scale); g.userData.stat = true; curGroup.add(g);
   const B = (w,h,d,c,x,y,z,ry) => { const m = box(w,h,d,c,x,y,z,{parent:g}); if (ry) m.rotation.y = ry; return m; };
   const pot = POTS[seed % POTS.length], fl = FLOWERS[seed % FLOWERS.length], fl2 = FLOWERS[(seed*3+2) % FLOWERS.length];
   switch (kind){
@@ -1093,7 +1099,7 @@ function glassWall(f,x,y,t){
     const len = 0.54, w = dx ? len : 0.08, d = dy ? len : 0.08;
     const px = cx + dx*0.25, pz = cz + dy*0.25;
     const g = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), glassMat);
-    g.position.set(px, h/2 + 0.06, pz); curGroup.add(g);
+    g.position.set(px, h/2 + 0.06, pz); g.userData.stat = true; curGroup.add(g);
     box(w+0.02,0.08,d+0.02,frame,px,0.04,pz,{cast:false});
     box(w+0.02,0.05,d+0.02,frame,px,h+0.08,pz);
   }
@@ -1123,10 +1129,12 @@ function restroomSign(x, y, female){
   }, wx(x), 0.82, wz(y) + 0.06);
 }
 
+desk = stat(desk); chair = dyn(chair); labBench = dyn(labBench); poolRack = dyn(poolRack);
 const tiles = {c:[], m:[], o:[], k:[], a:[], b:[], u:[], v:[], s:[], e:[], n:[], z:[], q:[], y:[], G:[], i:[], E:[], f:[], t:[], l:[], J:[], d:[], "9":[], "3":[], floor:[]};
 const boardTiles = {};
 const leds = [];
 const ledColors = ["#38d27a","#38d27a","#38d27a","#f0b429","#4aa3ff"];
+STATIC = true;
 for (let f=0; f<NF; f++){
   curGroup = groups[f];
   floorMesh(f);
@@ -1351,7 +1359,7 @@ for (let f=0; f<NF; f++){
         for (const [lx,lz] of [[-1.2,-0.65],[1.2,-0.65],[-1.2,0.65],[1.2,0.65]]) box(0.16,0.6,0.16,"#4a2f1f",pcx+lx,0.3,pcz+lz);
         for (const [lx,lz] of [[-1.24,-0.69],[0,-0.7],[1.24,-0.69],[-1.24,0.69],[0,0.7],[1.24,0.69]]) box(0.09,0.02,0.09,"#111",pcx+lx,0.752,pcz+lz,{cast:false});
         const cols = ["#f4f4f2","#ffd23f","#3b78d0","#e8475f","#a77dde","#ff7a3d","#2f9e77","#8b1e1e","#111111","#ffd23f","#3b78d0"];
-        const balls = cols.map(c => ({m: box(0.07,0.07,0.07,c,pcx,0.785,pcz,{cast:false}), x:0, z:0, vx:0, vz:0, in:false}));
+        const balls = cols.map(c => ({m: box(0.07,0.07,0.07,c,pcx,0.785,pcz,{cast:false,keep:true}), x:0, z:0, vx:0, vz:0, in:false}));
         poolTable = {cx:pcx, cz:pcz, balls, pockets:[[-1.24,-0.69],[0,-0.7],[1.24,-0.69],[-1.24,0.69],[0,0.7],[1.24,0.69]].map(([a,b]) => [pcx+a, pcz+b]), phase:"aim", timer:0, turn:0, shooter:null, strikeT:-9, broken:false};
         poolRack();
         for (let i=0;i<2;i++){ const cue = box(0.03,0.03,1.3,"#c9a27a",cx+2.6+i*0.07,0.65,cz-0.3+i*0.05); cue.rotation.x = 1.2; }
@@ -1363,7 +1371,7 @@ for (let f=0; f<NF; f++){
         for (let k=0;k<6;k++) box(0.34,0.012,0.005,"#c9ccc4",cx,0.2+k*0.08,cz+0.213,{cast:false});
         box(0.06,0.03,0.005,"#36c3ff",cx,0.68,cz+0.214,{cast:false});
         const lbl = textPlane(0.3,0.06,(c,w,h) => { c.fillStyle = "#f2f2ef"; c.fillRect(0,0,w,h); c.fillStyle = "#2f6fd8"; c.font = "700 " + Math.round(h*0.7) + 'px "IBM Plex Sans KR",sans-serif'; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("공기청정 · 좋음", w/2, h/2); }, cx, 0.6, cz+0.216);
-        purifiers.push(box(0.3,0.005,0.3,"#3fe0ff",cx,0.825,cz,{cast:false}));
+        purifiers.push(box(0.3,0.005,0.3,"#3fe0ff",cx,0.825,cz,{cast:false,keep:true}));
         break;
       }
       case "e":
@@ -1377,6 +1385,7 @@ for (let f=0; f<NF; f++){
     if (t === ".") tiles.floor.push({f,x,y});
   }
 }
+STATIC = false;
 /* 화이트보드: 방마다 한 장의 캔버스 */
 const BOARD_NOTES = ["Q4 목표 매출 +20%","API v2 설계 확정","출시일 11/20","버그 37건 → 12건","온보딩 개선안","A/B 테스트 결과 공유","다음 주 금 데모","예산 재검토","채용 2명 (FE, BE)","KPI 정리하기","TODO 문서화","서버 증설 검토","고객 인터뷰 5건","→ 담당 정해서 공유","리스크: 일정 지연"];
 const MARKERS = ["#1d4fd8","#d32f2f","#1b1b1b","#1f8a4c"];
@@ -4025,6 +4034,72 @@ function frame(){
   if (rosterAcc > 0.4){ rosterAcc = 0; refreshRoster(); refreshTimebar(); }
   requestAnimationFrame(frame);
 }
+/* ───────── 정적 배칭 ─────────
+   ① userData.stat 이 붙은 메시를 (층 그룹, 그림자 여부)별로 하나의 BufferGeometry로 합친다.
+   ② userData.merge 가 붙은 그룹(의자 등, 통째로 움직이는 덩어리)은 그룹 로컬 좌표계에서 하나의 메시로 합친다.
+   색은 정점 색으로 옮기므로 Lambert 재질 하나를 공유한다. 투명·텍스처 재질은 재질별로 따로 합친다. */
+const vcMat = new THREE.MeshLambertMaterial({vertexColors:true});
+function mergeMeshes(list){      /* list: [{mesh, M}] → 합쳐진 Mesh 배열 */
+  const bins = new Map(), out = [];
+  for (const {mesh:c, M} of list){
+    const lambert = c.material.isMeshLambertMaterial && !c.material.map && !c.material.transparent;
+    const key = (lambert ? "v" : c.material.uuid) + (c.castShadow ? 1 : 0) + (c.receiveShadow ? 1 : 0);
+    let b = bins.get(key); if (!b) bins.set(key, b = {lambert, mat:c.material, cast:c.castShadow, recv:c.receiveShadow, items:[]});
+    b.items.push({geo:c.geometry, M, color:c.material.color});
+  }
+  for (const b of bins.values()){
+    let nv = 0, ni = 0;
+    for (const it of b.items){ nv += it.geo.attributes.position.count; ni += it.geo.index.count; }
+    const pos = new Float32Array(nv*3), nor = new Float32Array(nv*3), uv = new Float32Array(nv*2), col = b.lambert ? new Float32Array(nv*3) : null;
+    const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    let vo = 0, io = 0;
+    for (const it of b.items){
+      const g = it.geo.clone(); g.applyMatrix4(it.M);
+      const n = g.attributes.position.count;
+      pos.set(g.attributes.position.array, vo*3); nor.set(g.attributes.normal.array, vo*3); uv.set(g.attributes.uv.array, vo*2);
+      if (col) for (let i=0;i<n;i++){ col[(vo+i)*3] = it.color.r; col[(vo+i)*3+1] = it.color.g; col[(vo+i)*3+2] = it.color.b; }
+      const gi = g.index.array; for (let i=0;i<gi.length;i++) idx[io+i] = gi[i] + vo;
+      vo += n; io += gi.length; g.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos,3)); geo.setAttribute("normal", new THREE.BufferAttribute(nor,3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv,2));
+    if (col) geo.setAttribute("color", new THREE.BufferAttribute(col,3));
+    geo.setIndex(new THREE.BufferAttribute(idx,1)); geo.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geo, b.lambert ? vcMat : b.mat);
+    mesh.castShadow = b.cast; mesh.receiveShadow = b.recv; mesh.matrixAutoUpdate = false;
+    out.push(mesh);
+  }
+  return out;
+}
+function batchStatics(){
+  const M4 = THREE.Matrix4;
+  const collect = (o, M, list, dead, accept, enter) => {
+    for (const c of o.children.slice()){
+      c.updateMatrix();
+      const cm = new M4().multiplyMatrices(M, c.matrix);
+      if (c.isMesh && accept(c)){ list.push({mesh:c, M:cm}); dead.push(c); }
+      else if (c.isGroup && enter(c)) collect(c, cm, list, dead, accept, enter);
+    }
+  };
+  const drop = dead => { for (const m of dead){ m.parent.remove(m); m.geometry.dispose(); } };
+  /* ② 통째로 움직이는 그룹: 로컬 좌표로 합치기 */
+  const rigid = [];
+  groups.forEach(root => root.traverse(o => { if (o.isGroup && o.userData.merge) rigid.push(o); }));
+  for (const g of rigid){
+    const list = [], dead = [];
+    collect(g, new M4(), list, dead, () => true, () => false);
+    for (const m of mergeMeshes(list)) g.add(m);
+    drop(dead);
+  }
+  /* ① 층 단위 정적 병합 */
+  groups.forEach(root => {
+    const list = [], dead = [];
+    collect(root, new M4(), list, dead, c => c.userData.stat, c => c.userData.stat);
+    for (const m of mergeMeshes(list)) root.add(m);
+    drop(dead);
+  });
+}
+batchStatics();
 showFloors("all");
 document.querySelectorAll("[data-wx]").forEach(o => o.setAttribute("aria-pressed", String(o.dataset.wx === weather)));
 setTimeout(() => toast(clockMode === "real" ? "업무 시간 · 실제 시각 " + clockText(dayMin()) + "으로 진행 · 옥상 " + ({clear:"맑음", rain:"비", snow:"눈"})[weather] : "업무 시간 밖 · 가짜 시각 " + clockText(dayMin()) + "부터 진행 · 옥상 " + ({clear:"맑음", rain:"비", snow:"눈"})[weather]), 600);
